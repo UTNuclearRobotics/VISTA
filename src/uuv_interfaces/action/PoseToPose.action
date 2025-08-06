@@ -1,0 +1,12 @@
+# Goal
+geometry_msgs/PoseStamped goal_pose  # Target pose with header (time, frame)
+
+---
+# Result
+string result_message               # "Succeeded" or "Failed"
+float64 distance_to_goal            # 3D Euclidean distance to the goal
+
+---
+# Feedback
+geometry_msgs/PoseStamped current_pose  # Current robot pose with header
+float64 distance_remaining              # Distance remaining to the goal

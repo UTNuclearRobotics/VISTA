@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-
+# find ready deoth camera. first check that it interfaces easily with NBV.
 
 def get_range_bearing_pitch_mask(
     relative_ranges: npt.NDArray[np.float_],
