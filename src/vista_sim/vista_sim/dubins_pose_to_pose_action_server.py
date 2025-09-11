@@ -146,7 +146,7 @@ class VehiclePoseActionServer(Node):
     
 
     def execute_cb(self, goal_handle):
-        """Execute the goal."""
+        """Execute the goal asynchronously using a timer."""
         self.get_logger().info("Starting execution loop…")
 
         # Extract goal
@@ -158,7 +158,6 @@ class VehiclePoseActionServer(Node):
         planner = DubinsAirplanePath(turn_radius=2.0, max_pitch_deg=15.0)
         waypoints = planner.get_poses(start_eta, goal_eta, waypoint_spacing=1.0)
         self.get_logger().info(f"Generated Dubins path with {len(waypoints)} waypoints")
-
 
         # Vehicle model
         vehicle = SimpleVehicleModel(
@@ -178,48 +177,80 @@ class VehiclePoseActionServer(Node):
             waypoints,
         )
 
-        # Execution loop
-        eta = start_eta
-        nu = start_nu
+        # Store state for the timer callback
+        self._goal_handle = goal_handle
+        self._vehicle = vehicle
+        self._eta = start_eta
+        self._nu = start_nu
+        self._goal_eta = goal_eta
+        self._start_time = time.time()
+
+        # Initialize the result message
+        self._result = PoseToPose.Result()
+
+        # Start the timer
+        self._timer = self.create_timer(self.dt, self.timer_cb)
+
+        # Return immediately (non-blocking)
+        return self._result
+
+    def timer_cb(self):
+        """Timer callback for periodic simulation steps."""
+        # Check for cancellation
+        if self._goal_handle.is_cancel_requested:
+            self._goal_handle.canceled()
+            self.get_logger().info("Goal canceled by client.")
+            self._result.result_message = "Canceled"
+            self._result.distance_to_goal = -1.0
+            self.cleanup()
+            return
+
+        # Simulation step
+        control = self._vehicle.calc_control_input(self._eta)
+        self._eta, self._nu = self._vehicle.step(self._eta, self._nu, control, self.dt)
+
+        # Publish feedback
+        pose_msg = self.eta_to_pose_stamped(self._eta)
+        self.broadcast_tf(pose_msg)
+        dist = math.sqrt(
+            (self._eta.north - self._goal_eta.north) ** 2
+            + (self._eta.east - self._goal_eta.east) ** 2
+            + (self._eta.depth - self._goal_eta.depth) ** 2
+        )
         feedback = PoseToPose.Feedback()
-        t_start = time.time()
+        feedback.current_pose = pose_msg
+        feedback.distance_remaining = dist
+        self._goal_handle.publish_feedback(feedback)
 
-        while rclpy.ok():
-            # Check for cancellation
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                self.get_logger().info("Goal canceled by client.")
-                return PoseToPose.Result(result_message="Canceled", distance_to_goal=-1.0)
+        # Check if goal is reached
+        if dist < 0.3:
+            self._goal_handle.succeed()
+            self.get_logger().info("Goal reached.")
+            self._result.result_message = "Succeeded"
+            self._result.distance_to_goal = dist
+            self.cleanup()
+            return
 
-            # Simulation step
-            control = vehicle.calc_control_input(eta)
-            eta, nu = vehicle.step(eta, nu, control, self.dt)
+        # Check for timeout
+        if time.time() - self._start_time > self.max_runtime:
+            self._goal_handle.abort()
+            self.get_logger().warning("Max runtime exceeded – aborting.")
+            self._result.result_message = "Aborted – timeout"
+            self._result.distance_to_goal = dist
+            self.cleanup()
+            return
 
-            # Publish feedback
-            pose_msg = self.eta_to_pose_stamped(eta)
-            self.broadcast_tf(pose_msg)
-            dist = math.sqrt(
-                (eta.north - goal_eta.north) ** 2
-                + (eta.east - goal_eta.east) ** 2
-                + (eta.depth - goal_eta.depth) ** 2
-            )
-            feedback.current_pose = pose_msg
-            feedback.distance_remaining = dist
-            goal_handle.publish_feedback(feedback)
-
-            # Check if goal is reached
-            if dist < 0.3:
-                goal_handle.succeed()
-                self.get_logger().info("Goal reached ")
-                return PoseToPose.Result(result_message="Succeeded", distance_to_goal=dist)
-
-            # Check for timeout
-            if time.time() - t_start > self.max_runtime:
-                goal_handle.abort()
-                self.get_logger().warning("Max runtime exceeded – aborting")
-                return PoseToPose.Result(result_message="Aborted – timeout", distance_to_goal=dist)
-
-            time.sleep(self.dt)
+    def cleanup(self):
+        """Clean up after goal completion or cancellation."""
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+        self._goal_handle = None
+        self._vehicle = None
+        self._eta = None
+        self._nu = None
+        self._goal_eta = None
+        self._start_time = None
 
     def destroy_node(self):
         """Clean up resources."""
