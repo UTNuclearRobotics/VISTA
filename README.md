@@ -1,2 +1,2 @@
 # VISTA
-currently working on feature branch before merging with main. Stay Tuned! Contact Talal Ayman for inquiries
+A working kinematics simulation environment with Rviz for visualization for UUVs based on a simplified Dubins airplane model. More progress and instructions to be added
