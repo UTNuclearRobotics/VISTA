@@ -151,8 +151,15 @@ class VehiclePoseActionServer(Node):
 
         # Extract goal
         goal_eta = self.pose_stamped_to_eta(goal_handle.request.goal_pose)
-        start_eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        start_nu = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        
+        # If this is the first goal, initialize.
+        if not hasattr(self, "_eta") or self._eta is None:
+            start_eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            start_nu  = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        # Otherwise reuse current pose from previous goal
+        else:
+            start_eta = self._eta
+            start_nu  = self._nu
 
         # Plan path
         planner = DubinsAirplanePath(turn_radius=2.0, max_pitch_deg=15.0)
