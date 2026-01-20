@@ -65,8 +65,6 @@ class DepthSubscriberTest(Node):
         plt.title(f'Depth ({self.info_msg.width}x{self.info_msg.height}, fx={self.info_msg.k[0]:.1f})')
         plt.show()
         
-        rclpy.shutdown()
-
 
 def main(args=None):
     rclpy.init(args=args)

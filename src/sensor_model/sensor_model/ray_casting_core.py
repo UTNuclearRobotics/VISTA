@@ -5,9 +5,6 @@ import open3d as o3d
 class RayCastingCore:
     def __init__(self, width_px, height_px, fx, fy, cx=None, cy=None):
         self.scene = o3d.t.geometry.RaycastingScene()
-        # fov_deg to be removed
-        self.fov_deg = 90
-
         
         #intrinsics here, use these attributes to populate CameraInfo message directly
         self.width_px = width_px
@@ -21,7 +18,7 @@ class RayCastingCore:
 
     @classmethod
     def from_config(cls, config: dict):
-        """Create from a config dict (e.g FLS_CONFIG)"""
+        """initialize object from a config dict (e.g FLS_CONFIG)"""
         return cls(
             width_px=config['width_px'],
             height_px=config['height_px'],
@@ -38,7 +35,7 @@ class RayCastingCore:
             [self.fx, 0,       self.cx],
             [0,       self.fy, self.cy],
             [0,       0,       1      ]
-        ])
+        ], dtype=np.float64)
 
     def create_box_scene(self, position=(0, 0, 0), size=(1.0, 1.0, 0.5)):
         width, height, depth = size
@@ -46,20 +43,30 @@ class RayCastingCore:
         box = o3d.t.geometry.TriangleMesh.from_legacy(legacy_box)
         self.scene.add_triangles(box)
     
-    #harcoded center for now
-    def set_rays(self, camera_pos):
-        #TODO use overloaded form with intrinsics and extrinsics with SE(3) position representation
+    def set_rays(self, extrinsic):
+        """Set rays with given extrinsic matrix (world pose to camera frame).
+
+        Args:
+            extrinsic: 4x4 numpy array representing world-to-camera transform.
+
+        Camera convention: looks along +Z in camera frame.
+        """
         self.rays = o3d.t.geometry.RaycastingScene.create_rays_pinhole(
-            fov_deg=90,
-            center=[0, 0, 0],
-            eye= camera_pos,
-            up=[0, 0, 1],
-            width_px= self.width_px,
-            height_px=self.height_px,)
+            intrinsic_matrix=self.K,
+            extrinsic_matrix=extrinsic,
+            width_px=self.width_px,
+            height_px=self.height_px,
+        )
     
     def ping(self):
+        """Cast rays through the scene and return depth image.
+
+        Returns:
+            np.ndarray: Depth image of shape (H, W) with invalid depths set to 0.0
+        """
         ans = self.scene.cast_rays(self.rays)
         depth = ans['t_hit'].numpy()   # shape (H, W)
+        depth[~np.isfinite(depth)] = 0.0
         return depth
 
 

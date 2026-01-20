@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'sensor_publisher = sensor_model.sensor_publisher:main',
             'depth_subscriber_test = sensor_model.depth_subscriber_test:main',
+            'tf_test_broadcaster = sensor_model.tf_test_broadcaster:main',
         ],
     },
 )
