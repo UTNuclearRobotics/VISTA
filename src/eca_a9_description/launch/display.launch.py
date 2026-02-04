@@ -36,7 +36,7 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             name='ned_to_base_link_static',
-            arguments=['0','0','0', '0','0','0', 'ned','base_link']
+            arguments=['-1','-1','-1', '0','0','0', 'ned','base_link']
         ),
         
     ])

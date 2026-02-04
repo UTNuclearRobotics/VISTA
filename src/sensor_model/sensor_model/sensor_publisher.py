@@ -39,7 +39,7 @@ class DepthPublisher(Node):
 
         # Initialize ray caster
         self.fls_sensor = RayCastingCore.from_config(FLS_CONFIG)
-        self.fls_sensor.create_box_scene()                       # test geometry
+        self.fls_sensor.create_monkey_scene()                     # test geometry
         # Rays will be set dynamically with transform in timer callback
 
         # Create publishers
@@ -57,10 +57,10 @@ class DepthPublisher(Node):
     def timer_cb(self):
         stamp = self.get_clock().now().to_msg()
 
-        # Lookup world-to-camera transform (sonar relative to map) for Open3D extrinsic
+        # Lookup world-to-camera transform (sonar_optical relative to map) for Open3D extrinsic
         try:
             transform = self.tf_buffer.lookup_transform(
-                'sonar',
+                'sonar_optical',
                 'map',
                 rclpy.time.Time())
         except TransformException as ex:
@@ -77,7 +77,7 @@ class DepthPublisher(Node):
         # Package into ROS Image 
         img_msg = Image()
         img_msg.header.stamp = stamp
-        img_msg.header.frame_id = "sonar"
+        img_msg.header.frame_id = "sonar_optical"
         img_msg.height = depth.shape[0]
         img_msg.width = depth.shape[1]
         img_msg.encoding = "32FC1"
@@ -88,7 +88,7 @@ class DepthPublisher(Node):
         # CameraInfo
         info_msg = CameraInfo()
         info_msg.header.stamp = stamp
-        info_msg.header.frame_id = "sonar"
+        info_msg.header.frame_id = "sonar_optical"
         info_msg.height = self.fls_sensor.height_px
         info_msg.width = self.fls_sensor.width_px
         

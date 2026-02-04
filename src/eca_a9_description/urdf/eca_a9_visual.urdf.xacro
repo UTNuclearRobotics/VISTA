@@ -31,8 +31,8 @@
   <joint name="base_to_sonar" type="fixed">
     <parent link="base_link"/>
     <child link="sonar"/>
-    <!-- Mount at front of vehicle, angled down 90 degrees for testing -->
-    <origin xyz="0.5 0 0" rpy="0 -1.5708 0"/>
+    <!-- Mount at base_link, angled down 90 degrees for testing -->
+    <origin xyz="0 0 0" rpy="0 -1.5708 0"/>
   </joint>
 
   <link name="sonar">
@@ -47,6 +47,14 @@
     </visual>
   </link>
 
+  <!-- Sonar optical frame (for raycasting coordinate system) -->
+  <!-- Converts to optical convention: +X right, +Y down, +Z forward -->
+  <joint name="sonar_to_optical" type="fixed">
+    <parent link="sonar"/>
+    <child link="sonar_optical"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
 
+  <link name="sonar_optical"/>
 
 </robot>
