@@ -38,6 +38,16 @@ class RayCastingCore:
             [0,       0,       1      ]
         ], dtype=np.float64)
 
+    def load_mesh(self, file_path):
+        """Load a mesh from file and add it to the ray casting scene.
+
+        Args:
+            file_path: Absolute path to mesh file (.obj, .stl, .ply, etc.)
+        """
+        mesh = o3d.io.read_triangle_mesh(file_path)
+        t_mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh)
+        self.scene.add_triangles(t_mesh)
+
     def create_box_scene(self, position=(0, 0, 0), size=(1.0, 1.0, 0.5)):
         width, height, depth = size
         legacy_box = o3d.geometry.TriangleMesh.create_box(width, height, depth).translate(position)

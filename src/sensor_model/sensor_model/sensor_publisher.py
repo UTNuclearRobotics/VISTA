@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo
@@ -7,6 +8,7 @@ from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 import tf_transformations
+from ament_index_python.packages import get_package_share_directory
 
 from sensor_model.ray_casting_core import RayCastingCore   # full package path
 from sensor_model.compute_intrinsics import FLS_CONFIG
@@ -32,14 +34,32 @@ def transform_to_extrinsic(t):
 class DepthPublisher(Node):
     def __init__(self):
         super().__init__('depth_publisher')
+        
+        self.declare_parameter('box_count', rclpy.Parameter.Type.INTEGER)
+        box_count = self.get_parameter('box_count').value
+
+        # array of box parameter names as tuples (string param name, type)
+        box_params = [('box_size', rclpy.Parameter.Type.DOUBLE_ARRAY)] + \
+                     [(f'box_positions.box_{i}', rclpy.Parameter.Type.DOUBLE_ARRAY) for i in range(box_count)]
+        self.declare_parameters(namespace='', parameters=box_params)
+
+        box_size = tuple(self.get_parameter('box_size').value)
 
         # Initialize TF2 buffer and listener
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        # Initialize ray caster
+        self.declare_parameter('terrain.file_path', rclpy.Parameter.Type.STRING)
+        terrain_rel = self.get_parameter('terrain.file_path').value
+        terrain_path = os.path.join(get_package_share_directory('sensor_model'), terrain_rel)
+
+        # Initialize ray caster, load terrain mesh and boxes
         self.fls_sensor = RayCastingCore.from_config(FLS_CONFIG)
-        self.fls_sensor.create_monkey_scene()                     # test geometry
+        self.fls_sensor.load_mesh(terrain_path)
+        for i in range(box_count):
+            pos = self.get_parameter(f'box_positions.box_{i}').value
+            self.fls_sensor.create_box_scene(position=tuple(pos), size=box_size)
+        
         # Rays will be set dynamically with transform in timer callback
 
         # Create publishers

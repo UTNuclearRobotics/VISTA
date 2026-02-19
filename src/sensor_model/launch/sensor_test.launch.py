@@ -8,6 +8,11 @@ def generate_launch_description():
     rviz_config = PathJoinSubstitution([
         FindPackageShare('sensor_model'), 'rviz', 'sensor_test.rviz'
     ])
+    
+    param_config = PathJoinSubstitution([
+        FindPackageShare('sensor_model'), 'config', 'environment_basic.yaml'
+    ])    
+    
 
     return LaunchDescription([
         # Fixed rotation: sonar (X-fwd, Y-left, Z-up) → sonar_optical (X-right, Y-down, Z-fwd)
@@ -21,13 +26,20 @@ def generate_launch_description():
         ),
         Node(
             package='sensor_model',
-            executable='suzanne_rviz',
-            name='suzanne_rviz',
+            executable='meshes_rviz',
+            name='meshes_rviz',
+            parameters=[param_config],
         ),
         Node(
             package='sensor_model',
             executable='sensor_publisher',
             name='depth_publisher',
+            parameters= [param_config],
+        ),
+        Node(
+            package='sensor_model',
+            executable='pose_marker_test',
+            name='pose_marker_test',
         ),
         Node(
             package='rviz2',
