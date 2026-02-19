@@ -27,6 +27,34 @@
     </inertial>
   </link>
 
+  <!-- Forward-Looking Sonar (FLS) frame -->
+  <joint name="base_to_sonar" type="fixed">
+    <parent link="base_link"/>
+    <child link="sonar"/>
+    <!-- Mount at base_link, angled down 90 degrees for testing -->
+    <origin xyz="0 0 0" rpy="0 -1.5708 0"/>
+  </joint>
 
+  <link name="sonar">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <material name="sonar_blue">
+        <color rgba="0.0 0.5 1.0 0.8"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Sonar optical frame (for raycasting coordinate system) -->
+  <!-- Converts to optical convention: +X right, +Y down, +Z forward -->
+  <joint name="sonar_to_optical" type="fixed">
+    <parent link="sonar"/>
+    <child link="sonar_optical"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <link name="sonar_optical"/>
 
 </robot>
