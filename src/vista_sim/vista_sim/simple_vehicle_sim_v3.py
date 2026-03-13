@@ -119,8 +119,18 @@ class DubinsAirplanePath:
         ]
 
 
+def wrapped_diff(a: float, b: float, period: float) -> float:
+    """Compute the smallest difference between two values on a circular domain."""
+    return (a - b + period / 2) % period - period / 2
+
+
 def first_order_lag_step(
-    u: float, y_prev: float, tau: float, dt: float, dydt_max: Optional[float] = None
+    u: float,
+    y_prev: float,
+    tau: float,
+    dt: float,
+    dydt_max: Optional[float] = None,
+    is_wrapped=False,
 ) -> Tuple[float, float]:
     """Step forward a first-order lag system using Forward Euler integration.
 
@@ -134,13 +144,23 @@ def first_order_lag_step(
     :type dt: float
     :param dydt_max: Optionally limit max dydt magnitude
     :type dydt_max: Optional[float]
+    :param is_wrapped: Whether the output variable wraps (e.g., angles)
+    :type is_wrapped: bool
     :return: Output at y the next time step (y_next) and the derivative of the output (dydt)
     :rtype: Tuple[float, float]
     """
 
     # First solve for First-order ODE. Assume DC gain is 1.
     dc_gain = 1.0
-    dy_dt = ((dc_gain * u) - y_prev) / tau
+
+    # Handle wrapped difference if required
+    period = 2 * np.pi
+    if is_wrapped and period is not None:
+        error = wrapped_diff(u, y_prev, period)
+    else:
+        error = u - y_prev
+
+    dy_dt = (dc_gain * error) / tau
 
     # Optionally clip dydt using dydt_clip function
     if dydt_max is not None:
@@ -148,6 +168,11 @@ def first_order_lag_step(
 
     # Now use ODE to forward step output (Forward Euler Integration)
     y_next = y_prev + (dy_dt * dt)
+
+    # If wrapped, ensure output stays within [0, period) or [-period/2, period/2)
+    if is_wrapped:
+        y_next = np.mod(y_next + period / 2, period) - period / 2
+
     return y_next, dy_dt
 
 
@@ -322,7 +347,12 @@ class SimpleVehicleModel:
         :rtype: Tuple[float, float]
         """
         next_yaw, next_yaw_rate = first_order_lag_step(
-            yaw_des, current_yaw, self.yaw_time_constant, time_step, self.max_yaw_rate
+            yaw_des,
+            current_yaw,
+            self.yaw_time_constant,
+            time_step,
+            self.max_yaw_rate,
+            is_wrapped=True,
         )
         return next_yaw, next_yaw_rate
 
@@ -456,16 +486,15 @@ def plot_data(
 def plot_all_data(sim_data: pd.DataFrame, end_pose: Eta) -> None:
     """Plots the vehicle states relative to commands"""
     # Plots
-    fig, axes = plt.subplots(3, 3, figsize=(11, 6))
+    fig, axes = plt.subplots(3, 3, figsize=(11, 6), sharex=True)
 
     # Plots Vehicle Track Line
     ax = axes[0, 0]
     # Since not a time series, don't share x axis with rest of plots
-    plot_track_line(sim_data, end_pose, ax)
+    # plot_track_line(sim_data, end_pose, ax)
 
     # Plots Vehicle Depth vs. Time
     ax = axes[0, 1]
-    ax.get_shared_x_axes().join(ax, *axes.flatten()[1:])
     depth_keys = ["depth", "depth_des"]
     depth_names = ["Actual", "Desired"]
     plot_data(sim_data, ax, "Depth (m)", depth_keys, depth_names)
@@ -591,7 +620,7 @@ def main() -> None:
     # Initialize velocities to zero other than 1 m/s surge
     start_nu = Nu(1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     # Define desired end pose for UUV
-    end_pose = Eta(40.0, 40.0, 10.0, 0.0, 0.0, np.pi)
+    end_pose = Eta(40.0, -40.0, 10.0, 0.0, 0.0, -np.pi)
 
     # Initialize sim parameters
     time_step = 0.2  # seconds

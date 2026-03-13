@@ -1,0 +1,7 @@
+# Request
+float64[6] eta    # [north, east, depth, roll, pitch, yaw]
+float64[6] nu     # [surge, sway, heave, roll_rate, pitch_rate, yaw_rate]
+---
+# Response
+bool success
+

@@ -16,9 +16,16 @@ set(action_files
   "action/PoseToPose.action"
 )
 
+# Add service files
+set(srv_files
+  "srv/PauseDrift.srv"
+  "srv/ResumeDrift.srv"
+)
+
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${action_files}
+  ${srv_files}
   DEPENDENCIES geometry_msgs
 )
 

@@ -1,29 +1,33 @@
 """
 Author: Talal Ayman
-ROS 2 Action Server that drives a simple Dubins‑based vehicle simulator
+ROS 2 Action Server that drives a simple Dubins-based vehicle simulator
 from its current pose to a goal pose.
 
 Key features
 ------------
 *   No changes to the Dubins planner or vehicle dynamics classes.
 *   TF broadcast of `base_link` for RViz visualisation.
+*   Blocking execute callback running in a MultiThreadedExecutor thread.
+*   Client-side cancellation support with MutuallyExclusiveCallbackGroup.
+*   Drift node integration planned (pause/resume service calls).
 """
 
 import math
 import time
-from typing import Optional
+from threading import Event
 
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, GoalResponse, CancelResponse
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from tf_transformations import quaternion_from_euler
 from tf2_ros import TransformBroadcaster
 from uuv_interfaces.action import PoseToPose
+from uuv_interfaces.srv import PauseDrift, ResumeDrift
 
-
-
-from vista_sim.simple_vehicle_sim_v2 import (
+from vista_sim.simple_vehicle_sim_v3 import (
     Eta,
     Nu,
     DubinsAirplanePath,
@@ -32,71 +36,78 @@ from vista_sim.simple_vehicle_sim_v2 import (
 
 
 class VehiclePoseActionServer(Node):
-    """Synchronous Pose-to-Pose action server using Dubins planning."""
+    """Pose-to-Pose action server using Dubins planning and a blocking execute callback."""
 
     def __init__(self):
         super().__init__("vehicle_pose_action_server")
 
         # Parameters
-        self.declare_parameter("use_ned_frame", True)
         self.declare_parameter("frame_id", "ned")
         self.declare_parameter("time_step", 0.1)
         self.declare_parameter("constant_velocity", 0.5)
         self.declare_parameter("max_runtime", 300.0)
 
-        self.use_ned_frame = self.get_parameter("use_ned_frame").value
         self.frame_id = self.get_parameter("frame_id").value
         self.dt = self.get_parameter("time_step").value
         self.constant_velocity = self.get_parameter("constant_velocity").value
         self.max_runtime = self.get_parameter("max_runtime").value
 
+        # Vehicle state — always valid, never None
+        self._eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self._nu = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self._cancel_requested = False
+
         # TF Broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
-        # Publisher for planned path visualization
+        self._broadcast_origin_tf()
 
-        # Action Server
+        # Action Server with cancellation support
+        motion_cb_group = MutuallyExclusiveCallbackGroup()
         self._action_server = ActionServer(
             self,
             PoseToPose,
             "pose_to_pose",
             goal_callback=self.goal_cb,
-            cancel_callback=self.cancel_cb,
             execute_callback=self.execute_cb,
+            cancel_callback=self.cancel_cb,
+            callback_group=motion_cb_group,
         )
+
+        # Drift service clients (ReentrantCallbackGroup so the executor can
+        # process the service response while execute_cb blocks on Event.wait)
+        service_cb_group = ReentrantCallbackGroup()
+        self._pause_drift_cli = self.create_client(PauseDrift, 'pause_drift', callback_group=service_cb_group)
+        self._resume_drift_cli = self.create_client(ResumeDrift, 'resume_drift', callback_group=service_cb_group)
 
         self.get_logger().info("Vehicle Pose Action Server ready")
 
-    # Note: goal_cb and cancel_cb are required by ActionServer, but currently contain no custom logic.
-    # They always accept every goal and cancel request.
-    # You can add logic here to reject concurrent goals, preempt, or restrict cancellation if needed.
+    # ------------------------------------------------------------------
+    # Action callbacks
+    # ------------------------------------------------------------------
 
     def goal_cb(self, goal_request):
-        """Handle incoming goal requests.
-
-        Currently, this callback always accepts incoming goals.
-        If you want to support goal preemption or reject concurrent goals,
-        add logic here.
-        """
-        self.get_logger().info("Goal accepted.")
+        if not isinstance(goal_request.goal_pose, PoseStamped):
+            self.get_logger().warn("Goal rejected: goal_pose is not a PoseStamped.")
+            return GoalResponse.REJECT
+        self.get_logger().info("Goal received – accepting.")
         return GoalResponse.ACCEPT
 
-    def cancel_cb(self, goal_handle):
-        """Handle goal cancellation requests.
-
-        Currently, this callback always accepts cancellation requests.
-        Add logic here if you want to restrict when goals can be canceled.
-        """
-        self.get_logger().info("Cancel request received – accepted.")
+    def cancel_cb(self, cancel_request):
+        self.get_logger().info("Cancel accepted – halting navigation.")
+        self._cancel_requested = True
         return CancelResponse.ACCEPT
+
+    # ------------------------------------------------------------------
+    # Coordinate conversion helpers
+    # ------------------------------------------------------------------
 
     def pose_stamped_to_eta(self, pose: PoseStamped) -> Eta:
         """Convert PoseStamped to Eta."""
-        qx, qy, qz, qw = (
-            pose.pose.orientation.x,
-            pose.pose.orientation.y,
-            pose.pose.orientation.z,
-            pose.pose.orientation.w,
-        )
+        qx = pose.pose.orientation.x
+        qy = pose.pose.orientation.y
+        qz = pose.pose.orientation.z
+        qw = pose.pose.orientation.w
+
         sinr_cosp = 2.0 * (qw * qx + qy * qz)
         cosr_cosp = 1.0 - 2.0 * (qx * qx + qy * qy)
         roll = math.atan2(sinr_cosp, cosr_cosp)
@@ -133,7 +144,7 @@ class VehiclePoseActionServer(Node):
         return pose
 
     def broadcast_tf(self, pose: PoseStamped):
-        """Broadcast TF for visualization."""
+        """Broadcast base_link TF for RViz visualisation."""
         t = TransformStamped()
         t.header.stamp = pose.header.stamp
         t.header.frame_id = self.frame_id
@@ -143,37 +154,58 @@ class VehiclePoseActionServer(Node):
         t.transform.translation.z = pose.pose.position.z
         t.transform.rotation = pose.pose.orientation
         self.tf_broadcaster.sendTransform(t)
-    
+
+    def _broadcast_origin_tf(self):
+        """Broadcast an identity ned -> base_link transform at startup."""
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = self.frame_id
+        t.child_frame_id = "base_link"
+        t.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(t)
+
+    def pause_drift(self):
+        event = Event()
+        future = self._pause_drift_cli.call_async(PauseDrift.Request())
+        future.add_done_callback(lambda _: event.set())
+        event.wait()
+        response = future.result()
+        return Eta(*response.eta), Nu(*response.nu)
+
+    def resume_drift(self, eta, nu):
+        request = ResumeDrift.Request()
+        request.eta = list(eta)
+        request.nu = list(nu)
+        event = Event()
+        future = self._resume_drift_cli.call_async(request)
+        future.add_done_callback(lambda _: event.set())
+        event.wait()
+    # ------------------------------------------------------------------
+    # Execute callback – runs in its own thread (MultiThreadedExecutor)
+    # ------------------------------------------------------------------
 
     def execute_cb(self, goal_handle):
-        """Execute the goal asynchronously using a timer."""
-        self.get_logger().info("Starting execution loop…")
-
-        # Extract goal
-        goal_eta = self.pose_stamped_to_eta(goal_handle.request.goal_pose)
         
-        # If this is the first goal, initialize.
-        if not hasattr(self, "_eta") or self._eta is None:
-            start_eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            start_nu  = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        # Otherwise reuse current pose from previous goal
-        else:
-            start_eta = self._eta
-            start_nu  = self._nu
+        """Blocking execution loop: plan once, then step the vehicle model."""
+        self.get_logger().info("Execution started.")
 
-        # Plan path
-        planner = DubinsAirplanePath(turn_radius=2.0, max_pitch_deg=15.0)
-        waypoints = planner.get_poses(start_eta, goal_eta, waypoint_spacing=1.0)
-        self.get_logger().info(f"Generated Dubins path with {len(waypoints)} waypoints")
+        goal_eta = self.pose_stamped_to_eta(goal_handle.request.goal_pose)
 
-        # Vehicle model
+        eta, nu = self.pause_drift()
+
+
+        # --- Plan path once ---
+        planner = DubinsAirplanePath(turn_radius=0.5, max_pitch_deg=15.0)
+        waypoints = planner.get_poses(eta, goal_eta, waypoint_spacing=1.0)
+        self.get_logger().info(f"Planned Dubins path with {len(waypoints)} waypoints.")
+
         vehicle = SimpleVehicleModel(
             {
                 "speed_time_constant": 2.0,
-                "yaw_time_constant": 1.0,
+                "yaw_time_constant": 0.2,
                 "pitch_time_constant": 1.5,
                 "roll_ratio": 0.2,
-                "turn_radius_m": 2.0,
+                "turn_radius_m": 0.5,
                 "max_acceleration_mps2": 1.0,
                 "max_speed_mps": self.constant_velocity,
                 "max_pitch_deg": 15.0,
@@ -184,83 +216,72 @@ class VehiclePoseActionServer(Node):
             waypoints,
         )
 
-        # Store state for the timer callback
-        self._goal_handle = goal_handle
-        self._vehicle = vehicle
-        self._eta = start_eta
-        self._nu = start_nu
-        self._goal_eta = goal_eta
-        self._start_time = time.time()
+        result = PoseToPose.Result()
+        rate = self.create_rate(1.0 / self.dt)
+        start_time = time.time()
 
-        # Initialize the result message
-        self._result = PoseToPose.Result()
+        # --- Follow path ---
+        while True:
+            if self._cancel_requested:
+                self._cancel_requested = False
+                self._eta, self._nu = eta, nu
+                goal_handle.canceled()
+                self.get_logger().info("Goal canceled.")
+                result.result_message = "Canceled"
+                result.distance_to_goal = -1.0
+                result.yaw_error_at_goal = -1.0
+                self.resume_drift(eta, nu)
+                return result
 
-        # Start the timer
-        self._timer = self.create_timer(self.dt, self.timer_cb)
+            control = vehicle.calc_control_input(eta)
+            eta, nu = vehicle.step(eta, nu, control, self.dt)
 
-        # Return immediately (non-blocking)
-        return self._result
+            # Update shared state and broadcast TF
+            self._eta, self._nu = eta, nu
+            pose_msg = self.eta_to_pose_stamped(eta)
+            self.broadcast_tf(pose_msg)
 
-    def timer_cb(self):
-        """Timer callback for periodic simulation steps."""
-        # Check for cancellation
-        if self._goal_handle.is_cancel_requested:
-            self._goal_handle.canceled()
-            self.get_logger().info("Goal canceled by client.")
-            self._result.result_message = "Canceled"
-            self._result.distance_to_goal = -1.0
-            self.cleanup()
-            return
+            dist = math.sqrt(
+                (eta.north - goal_eta.north) ** 2
+                + (eta.east - goal_eta.east) ** 2
+                + (eta.depth - goal_eta.depth) ** 2
+            )
+            yaw_err = abs(math.atan2(
+                math.sin(eta.yaw - goal_eta.yaw),
+                math.cos(eta.yaw - goal_eta.yaw),
+            ))
 
-        # Simulation step
-        control = self._vehicle.calc_control_input(self._eta)
-        self._eta, self._nu = self._vehicle.step(self._eta, self._nu, control, self.dt)
+            feedback = PoseToPose.Feedback()
+            feedback.current_pose = pose_msg
+            feedback.distance_remaining = dist
+            feedback.yaw_error_remaining = yaw_err
+            goal_handle.publish_feedback(feedback)
 
-        # Publish feedback
-        pose_msg = self.eta_to_pose_stamped(self._eta)
-        self.broadcast_tf(pose_msg)
-        dist = math.sqrt(
-            (self._eta.north - self._goal_eta.north) ** 2
-            + (self._eta.east - self._goal_eta.east) ** 2
-            + (self._eta.depth - self._goal_eta.depth) ** 2
-        )
-        feedback = PoseToPose.Feedback()
-        feedback.current_pose = pose_msg
-        feedback.distance_remaining = dist
-        self._goal_handle.publish_feedback(feedback)
+            if dist < 1.0 and yaw_err < 0.1:
+                self._eta, self._nu = eta, nu
+                goal_handle.succeed()
+                self.get_logger().info(
+                    f"Goal reached. pos_err={dist:.3f}m  yaw_err={math.degrees(yaw_err):.2f}deg"
+                )
+                result.result_message = "Succeeded"
+                result.distance_to_goal = dist
+                result.yaw_error_at_goal = yaw_err
+                self.resume_drift(eta, nu)
+                return result
 
-        # Check if goal is reached
-        if dist < 0.3:
-            self._goal_handle.succeed()
-            self.get_logger().info("Goal reached.")
-            self._result.result_message = "Succeeded"
-            self._result.distance_to_goal = dist
-            self.cleanup()
-            return
+            if time.time() - start_time > self.max_runtime:
+                self._eta, self._nu = eta, nu
+                goal_handle.abort()
+                self.get_logger().warning("Max runtime exceeded – aborting.")
+                result.result_message = "Aborted – timeout"
+                result.distance_to_goal = dist
+                result.yaw_error_at_goal = yaw_err
+                self.resume_drift(eta, nu)
+                return result
 
-        # Check for timeout
-        if time.time() - self._start_time > self.max_runtime:
-            self._goal_handle.abort()
-            self.get_logger().warning("Max runtime exceeded – aborting.")
-            self._result.result_message = "Aborted – timeout"
-            self._result.distance_to_goal = dist
-            self.cleanup()
-            return
-
-    def cleanup(self):
-        """Clean up after goal completion or cancellation."""
-        if self._timer:
-            self._timer.cancel()
-            self._timer = None
-        self._goal_handle = None
-        self._vehicle = None
-        self._eta = None
-        self._nu = None
-        self._goal_eta = None
-        self._start_time = None
+            rate.sleep()
 
     def destroy_node(self):
-        """Clean up resources."""
         self._action_server.destroy()
         super().destroy_node()
 
@@ -268,8 +289,10 @@ class VehiclePoseActionServer(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = VehiclePoseActionServer()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:

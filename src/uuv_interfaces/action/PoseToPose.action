@@ -3,10 +3,12 @@ geometry_msgs/PoseStamped goal_pose  # Target pose with header (time, frame)
 
 ---
 # Result
-string result_message               # "Succeeded" or "Failed"
-float64 distance_to_goal            # 3D Euclidean distance to the goal
+string result_message               # "Succeeded", "Canceled", or "Aborted – timeout"
+float64 distance_to_goal            # 3D Euclidean distance at completion (m)
+float64 yaw_error_at_goal           # Absolute yaw error at completion (rad)
 
 ---
 # Feedback
 geometry_msgs/PoseStamped current_pose  # Current robot pose with header
-float64 distance_remaining              # Distance remaining to the goal
+float64 distance_remaining              # 3D Euclidean distance remaining (m)
+float64 yaw_error_remaining             # Absolute yaw error remaining (rad)

@@ -96,15 +96,21 @@ class DubinsPoseToPoseActionClient(Node):
         Callback for feedback from the action server.
         """
         feedback = feedback_msg.feedback
-        self.get_logger().info(f'Feedback: Current pose: {feedback.current_pose}, Distance remaining: {feedback.distance_remaining:.2f}m')
+        self.get_logger().info(
+            f'Feedback: dist={feedback.distance_remaining:.2f}m  '
+            f'yaw_err={feedback.yaw_error_remaining:.3f}rad'
+        )
 
     def result_callback(self, future):
         """
         Callback for the result from the action server.
         """
         result = future.result().result
-        self.get_logger().info(f'Result: {result.result_message}, Final distance to goal: {result.distance_to_goal:.2f}m')
-        rclpy.shutdown()
+        self.get_logger().info(
+            f'Result: {result.result_message} | '
+            f'dist={result.distance_to_goal:.3f}m  '
+            f'yaw_err={result.yaw_error_at_goal:.3f}rad'
+        )
 
 
 def main(args=None):
