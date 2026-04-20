@@ -13,7 +13,8 @@ def generate_launch_description():
 
     # Sensor model environment config
     sensor_param_config = PathJoinSubstitution([
-        FindPackageShare('sensor_model'), 'config', 'environment_basic.yaml'
+        FindPackageShare('sensor_model'), 'config',
+        [LaunchConfiguration('environment'), '.yaml']
     ])
 
     # Launch arguments
@@ -37,6 +38,10 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Launch argument declarations
+        DeclareLaunchArgument(
+            'environment', default_value='environment_basic',
+            description='Environment yaml name (no extension) from sensor_model/config/'
+        ),
         DeclareLaunchArgument(
             'start_rviz',
             default_value='true',

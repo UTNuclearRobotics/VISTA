@@ -96,6 +96,7 @@ class SonarInteractiveMarker(Node):
 
     def _on_feedback(self, feedback):
         self.current_pose = feedback.pose
+        self._broadcast_tf()
 
     def _broadcast_tf(self):
         if self.current_pose is None:

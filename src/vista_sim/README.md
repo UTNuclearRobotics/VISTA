@@ -15,8 +15,14 @@ source install/setup.bash
 ### Launch
 
 ```bash
-# Launch all nodes (drift service, action server, sensor model, RViz)
+# Launch with default flat seabed
 ros2 launch vista_sim vista_sim_launch.py
+
+# Launch with procedural rolling seabed
+ros2 launch vista_sim vista_sim_launch.py environment:=environment_seabed_basic
+
+# Launch with hill/valley terrain
+ros2 launch vista_sim vista_sim_launch.py environment:=environment_hill_valley
 
 # Launch without RViz
 ros2 launch vista_sim vista_sim_launch.py start_rviz:=false
@@ -24,6 +30,14 @@ ros2 launch vista_sim vista_sim_launch.py start_rviz:=false
 # Override parameters
 ros2 launch vista_sim vista_sim_launch.py drift_velocity:=0.1 constant_velocity:=1.0 time_step:=0.05
 ```
+
+The `environment` argument selects a config yaml from `sensor_model/config/` (omit the `.yaml` extension).
+
+| Environment | Description |
+|---|---|
+| `environment_basic` | Flat 200x200m seabed (default) |
+| `environment_seabed_basic` | Procedural rolling seabed with roughness |
+| `environment_hill_valley` | Valley at box_0 (0,10), hill at box_1 (0,20) |
 
 ### Send a Goal (separate terminal)
 

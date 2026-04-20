@@ -1,5 +1,6 @@
 from launch import LaunchDescription
-from launch.substitutions import PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -8,13 +9,20 @@ def generate_launch_description():
     rviz_config = PathJoinSubstitution([
         FindPackageShare('sensor_model'), 'rviz', 'sensor_test.rviz'
     ])
-    
+
+    env_arg = DeclareLaunchArgument(
+        'environment', default_value='environment_basic',
+        description='Environment yaml name (no extension) from sensor_model/config/'
+    )
+
     param_config = PathJoinSubstitution([
-        FindPackageShare('sensor_model'), 'config', 'environment_basic.yaml'
+        FindPackageShare('sensor_model'), 'config',
+        [LaunchConfiguration('environment'), '.yaml']
     ])    
     
 
     return LaunchDescription([
+        env_arg,
         # Fixed rotation: sonar (X-fwd, Y-left, Z-up) → sonar_optical (X-right, Y-down, Z-fwd)
         # Matches eca_a9_visual.urdf.xacro sonar_to_optical joint
         Node(

@@ -1,0 +1,34 @@
+next_best_view_server:
+  ros__parameters:
+    base_link: base_link
+    debug_viewpoint_idx: -1
+    nbv_policy:
+      min_z_dist: 0.0
+    num_threads: 1
+    sensor_names: ['fls']
+    sensors: 
+      fls:
+        camera_info_topic: '/sonar/depth/camera_info'
+        distance_multiplier: 1.0
+        max_depth: 10000000.0
+        min_depth: 0.0
+        pointcloud_info:
+          horizontal_fov: [0.0, 0.0]
+          horizontal_resolution: 0.0
+          vertical_fov: [0.0, 0.0]
+          vertical_resolution: 0.0
+        ray_density_downsample: 1
+        sensor_type: DepthImage
+        topic: '/sonar/depth/image_raw'
+    task_frame: map
+    tsdf:
+      angular_motion_threshold: 0.0
+      fine_voxel_scale: 0.0
+      fine_voxel_trunc: 0.0
+      padding: 0.5
+      position_motion_threshold: 0.0
+      truncation_distance: 0.3
+      voxel_size: 0.1
+
+#TODO: ensure this yaml file is accessed by launch files
+# For now, we can load it at run time for basic tests.

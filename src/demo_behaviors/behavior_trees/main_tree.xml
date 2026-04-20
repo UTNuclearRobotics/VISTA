@@ -1,0 +1,19 @@
+<root BTCPP_format = "4">
+    <BehaviorTree ID="MainTree">
+        <Repeat num_cycles = "2">
+            <Parallel success_count="1" failure_count="1">
+                <Repeat num_cycles = "-1">
+                    <DetectAndSortQueue geoID_write="{queue}" completed_ID_read="{completed_id}"/>
+                </Repeat>
+                <Fallback>
+                    <Sequence>
+                        <isQueueNotEmpty geoID_write="{queue}" current_ID="{current_target}"/>
+                        <SubTree ID = "NBV" />
+                    </Sequence>
+                    <!-- TODO: ReactiveSequence → < x hours? → Search Sub-tree -->
+                </Fallback>
+            </Parallel>
+        </Repeat>
+    </BehaviorTree>
+</root>
+

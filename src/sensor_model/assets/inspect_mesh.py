@@ -2,7 +2,7 @@
 import open3d as o3d
 import numpy as np
 
-mesh_path = "/home/talal/projects/VISTA_ws/src/sensor_model/assets/AxialSeamountPatch.R_-129.930_-129.914_46.035_46.050.epsg3857.obj"
+mesh_path = "/home/talal/projects/VISTA_ws/src/sensor_model/assets/seabed_200x200m.obj"
 mesh = o3d.io.read_triangle_mesh(mesh_path, enable_post_processing=True)
 
 vertices = np.asarray(mesh.vertices)
@@ -60,3 +60,16 @@ mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
 mesh.compute_vertex_normals()
 
 o3d.visualization.draw_geometries([mesh], window_name="High-Fidelity Seabed", width=1280, height=960)
+
+#%% 2D elevation heatmap with colorbar
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(8, 7))
+im = ax.tricontourf(vertices[:, 0], vertices[:, 1], vertices[:, 2], levels=50, cmap='viridis')
+fig.colorbar(im, ax=ax, label="Elevation (m)")
+ax.set_xlabel("X (m)")
+ax.set_ylabel("Y (m)")
+ax.set_title("Seabed Elevation Heatmap")
+ax.set_aspect('equal')
+plt.tight_layout()
+plt.show()

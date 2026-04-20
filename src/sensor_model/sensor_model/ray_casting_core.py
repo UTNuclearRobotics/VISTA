@@ -16,6 +16,9 @@ class RayCastingCore:
         
         self.rays = None
         self.extrinsic = None
+        
+        # key is geometry ID, value is centroid coordinates array
+        self.box_geometryID_hashmap = {}
 
     @classmethod
     def from_config(cls, config: dict):
@@ -52,7 +55,17 @@ class RayCastingCore:
         width, height, depth = size
         legacy_box = o3d.geometry.TriangleMesh.create_box(width, height, depth).translate(position)
         box = o3d.t.geometry.TriangleMesh.from_legacy(legacy_box)
-        self.scene.add_triangles(box)
+        
+        geometry_ID = self.scene.add_triangles(box)
+        
+        centroid_x = position[0] + 0.5 * size[0]
+        centroid_y = position[1] +  0.5 * size[1]
+        centroid_z = position[2] +  0.5 * size[2]
+        
+        self.box_geometryID_hashmap[geometry_ID] = [centroid_x,centroid_y,centroid_z]
+        
+        
+        
     
     def create_monkey_scene(self, position=(0, 0, 0), scale=1.0):
         monkey_data = o3d.data.MonkeyModel()
@@ -85,6 +98,8 @@ class RayCastingCore:
             np.ndarray: Depth image of shape (H, W) with invalid depths set to 0.0
         """
         hits = self.scene.cast_rays(self.rays)
+        
+        hit_ids = hits['geometry_ids'].numpy().flatten()
         dists = hits['t_hit']  # shape (H, W)
         
         #in the future create a boolean mask based on minimum and max distances
@@ -116,7 +131,19 @@ class RayCastingCore:
         # retrieve z component of points as depth
         depth = local_points[:, 2].reshape(self.height_px, self.width_px)
         
-        return depth
+        #process geometry_ids
+        
+        #remove non hit IDs
+        hit_ids = hit_ids[hit_ids != 0xFFFFFFFF]
+        
+        #only provide IDs present in the hashmap keys
+        
+        mask = np.isin(hit_ids, list(self.box_geometryID_hashmap.keys()))
+        
+        hit_ids = hit_ids[mask]
+        
+        
+        return depth, np.unique(hit_ids)
 
 
 

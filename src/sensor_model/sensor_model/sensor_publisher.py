@@ -12,6 +12,8 @@ from ament_index_python.packages import get_package_share_directory
 
 from sensor_model.ray_casting_core import RayCastingCore   # full package path
 from sensor_model.compute_intrinsics import FLS_CONFIG
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
 
 
 def transform_to_extrinsic(t):
@@ -68,6 +70,8 @@ class DepthPublisher(Node):
                                          10)
 
         self.pub_info = self.create_publisher(CameraInfo, '/sonar/depth/camera_info', 10)
+        
+        self.detect_pub = self.create_publisher(Path, '/detected_boxes', 10)
 
         # Publish at 10 Hz
         self.timer = self.create_timer(0.1, self.timer_cb)
@@ -77,7 +81,7 @@ class DepthPublisher(Node):
     def timer_cb(self):
         stamp = self.get_clock().now().to_msg()
 
-        # Lookup world-to-camera transform (sonar_optical relative to map) for Open3D extrinsic
+        # Lookup world-to-camera transform for Open3D extrinsic
         try:
             transform = self.tf_buffer.lookup_transform(
                 'sonar_optical',
@@ -92,8 +96,32 @@ class DepthPublisher(Node):
         self.fls_sensor.set_rays(extrinsic)
 
         # Get depth array (H, W)
-        depth = self.fls_sensor.ping().astype(np.float32)
-
+        depth, detected_ids = self.fls_sensor.ping()
+        
+       
+        
+        #semantically used for our detected objects
+        detect_msg = Path()
+        detect_msg.header.stamp = stamp
+        detect_msg.header.frame_id = 'map'
+        
+        # now created poseStamped points, but use the geometryID as header
+        # Ray costing core hashmaps just include the x,y,z centroid positions as values to the geometryID key
+        # later, one can make the values tf2 poses defined relative to map but not needed for
+        # so each pose shared the time stamp but must use its own dedicated ID name
+        
+        for gid in detected_ids:
+            pose = PoseStamped() #appending adds a reference to the same object. so it doesn't copy. explicit initialization
+            centroid = self.fls_sensor.box_geometryID_hashmap[gid]
+            self.get_logger().info(f"Detected geometry ID: {gid}, centroid: {centroid}")  
+            pose.header.stamp = detect_msg.header.stamp
+            pose.header.frame_id = str(gid)
+            pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = centroid
+            pose.pose.orientation.w = 1.0
+            detect_msg.poses.append(pose)
+            
+            
+        depth = depth.astype(np.float32)
         # Package into ROS Image 
         img_msg = Image()
         img_msg.header.stamp = stamp
@@ -133,9 +161,11 @@ class DepthPublisher(Node):
         info_msg.distortion_model = "plumb_bob"
         info_msg.d = [0.0, 0.0, 0.0, 0.0, 0.0]  # [k1, k2, t1, t2, k3]
 
-        # Publish both
+        # Publish all messages
         self.depth_pub.publish(img_msg)
         self.pub_info.publish(info_msg)
+        if len(detected_ids) > 0:
+            self.detect_pub.publish(detect_msg)
 
 
 def main(args=None):
