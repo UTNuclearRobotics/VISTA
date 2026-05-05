@@ -91,7 +91,8 @@ BT::NodeStatus DetectAndSortQueue::tick()
             // use a lambda to check the queue based on id
             auto it = std::find_if(queue_.begin(), queue_.end(), [&curr_id](const PoseStamped& p)
             { return p.header.frame_id == curr_id;});
-
+            
+            // if in the hashmap or if in the queue (meaning the iterator not at the end)
             if(visited_hashmap_.count(curr_id) or (it != queue_.end())){
                 continue;
             }

@@ -7,8 +7,8 @@
                 </Repeat>
                 <Fallback>
                     <Sequence>
-                        <isQueueNotEmpty geoID_write="{queue}" current_ID="{current_target}"/>
-                        <SubTree ID = "NBV" />
+                        <isQueueNotEmpty geoID_read="{queue}" current_ID_write="{current_ID}" target_pose_write = "{current_pose}"/>
+                        <SubTree ID="NBVOnTarget" _autoremap="true"/>
                     </Sequence>
                     <!-- TODO: ReactiveSequence → < x hours? → Search Sub-tree -->
                 </Fallback>

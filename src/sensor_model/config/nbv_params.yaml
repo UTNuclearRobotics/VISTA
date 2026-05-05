@@ -3,7 +3,7 @@ next_best_view_server:
     base_link: base_link
     debug_viewpoint_idx: -1
     nbv_policy:
-      min_z_dist: 0.0
+      min_z_dist: 3.0
     num_threads: 1
     sensor_names: ['fls']
     sensors: 

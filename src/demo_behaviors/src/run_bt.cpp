@@ -8,8 +8,9 @@
 #include <filesystem>
 #include <thread>
 
-// Demo behaviors TODO
+// Demo behaviors
 #include "demo_behaviors/behaviors/detect_and_sort_queue.hpp"
+#include "demo_behaviors/behaviors/is_queue_not_empty.hpp"
 
 // Dependency behaviors TODO, needed later
 
@@ -36,6 +37,7 @@ int main(int argc, char **argv)
 
   // Register custom behaviors
   factory.registerNodeType<DetectAndSortQueue>("DetectAndSortQueue", node);
+  factory.registerNodeType<isQueueNotEmpty>("isQueueNotEmpty");
 
   // Register BTs from file
   std::string share_path = ament_index_cpp::get_package_share_directory(

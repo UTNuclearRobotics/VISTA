@@ -1,0 +1,69 @@
+<root BTCPP_format="4">
+    <BehaviorTree ID="NBVOnTarget">
+        <Sequence>
+            <!-- Build ROI extents Vector3 from hardcoded dimensions -->
+            <SetROIExtents x_length="2.0" y_length="2.0" z_length="1.0" roi_extents="{roi_extents}"/>
+
+            <!-- Wrap PoseStamped to SharedPtr for PublishTransform -->
+            <MakeShared value_in="{current_pose}" shared_ptr="{current_pose_ptr}"/>
+
+            <!-- Broadcast roi_frame at target position relative to map for visualization and sampling -->
+            <PublishTransform parent_frame="map" child_frame="roi_frame" from_pose="{current_pose_ptr}" static="true"/>
+
+            <!-- Initialize NBV solver for this target -->
+            <ActivatePolicy roi_center="{current_pose}" roi_extents="{roi_extents}"/>
+
+            <!-- Sample candidate viewpoints on helix manifold around target (custom) -->
+            <SampleViewPoses
+                roi_center="{current_pose}"
+                clearance_height="1"
+                helix_height="5"
+                min_radius="2.0"
+                radius_multiplier="3"
+                num_shells="3"
+                delta_theta="30"
+                psi_max_deg="15"
+                view_poses="{poses}"
+            />
+
+            <!-- Initial scoring of all candidates (do-while seed) -->
+            <SetViews view_poses="{poses}" fractional_scores="{scores}"/>
+
+            <!-- NBV loop: repeat while not saturated -->
+            <RepeatWhile>
+                <Inverter>
+                    <CheckScoreSaturation threshold="0.1" fractional_scores="{scores}"/>
+                </Inverter>
+                <Sequence>
+                    <!-- Select highest-scored viewpoint, remove from candidate list -->
+                    <GetBestView
+                        view_poses="{poses}"
+                        fractional_scores="{scores}"
+                        best_view_pose="{best_view_pose}"
+                        new_poses="{poses}"
+                        new_scores="{scores}"
+                    />
+                    <!-- Back-propagate optical frame pose to base_link pose in map frame -->
+                    <CalculatePlanningPose
+                        view_pose="{best_view_pose}"
+                        view_frame="sonar_optical"
+                        planning_frame="base_link"
+                        planning_pose="{planning_pose}"
+                    />
+                    <!-- Convert to NED and send Dubins action goal; skip if unreachable -->
+                    <ForceSuccess>
+                        <DubinsClient planning_pose="{planning_pose}"/>
+                    </ForceSuccess>
+                    <!-- Re-score remaining candidates with updated TSDF -->
+                    <SetViews view_poses="{poses}" fractional_scores="{scores}"/>
+                </Sequence>
+            </RepeatWhile>
+
+            <!-- Finalize reconstruction for this target -->
+            <ConcludePolicy return_pointcloud="false"/>
+
+            <!-- Signal DetectAndSortQueue to retire this target -->
+            <MarkTargetComplete current_id_read="{current_ID}" completed_id_write="{completed_id}"/>
+        </Sequence>
+    </BehaviorTree>
+</root>
