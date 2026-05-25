@@ -20,6 +20,7 @@ set(action_files
 set(srv_files
   "srv/PauseDrift.srv"
   "srv/ResumeDrift.srv"
+  "srv/GenerateHelix.srv"
 )
 
 # Generate interfaces

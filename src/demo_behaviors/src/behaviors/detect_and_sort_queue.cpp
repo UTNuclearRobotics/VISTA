@@ -41,12 +41,14 @@ BT::NodeStatus DetectAndSortQueue::tick()
     {
         std::string c_id = completedID_msg.value();
 
-        auto it = std::find_if(queue_.begin(), queue_.end(), [&c_id](const PoseStamped& p) 
+        auto it = std::find_if(queue_.begin(), queue_.end(), [&c_id](const PoseStamped& p)
             { return p.header.frame_id == c_id;});
-        
-        // assign contents without copy, then erase destroys element
-        visited_hashmap_[c_id] = std::move(*it); 
-        queue_.erase(it);
+
+        // completed_id persists on the blackboard; only act on the first match
+        if (it != queue_.end()) {
+            visited_hashmap_[c_id] = std::move(*it);
+            queue_.erase(it);
+        }
     }
 
 
@@ -71,18 +73,13 @@ BT::NodeStatus DetectAndSortQueue::tick()
     for (const auto& p : queue_) {
         ids += p.header.frame_id + " ";
     }
-    RCLCPP_INFO(node_->get_logger(), "queue size=%zu msg=%s ids=[ %s]",
+    // Throttled to avoid flooding the log during fast BT ticks
+    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+        "queue size=%zu msg=%s ids=[ %s]",
         queue_.size(), msg ? "received" : "null", ids.c_str());
 
-    // now use msg
-
-    if(!msg){
-
-        return BT::NodeStatus::SUCCESS;
-
-    }
-    
-    else{
+    // now use msg — if no new message, skip additions but still fall through to setOutput
+    if(msg){
         for(const auto& pose_stamped: msg->poses){
             std::string curr_id = pose_stamped.header.frame_id;
             //check if this id has already been visited (visited_hashmap)
@@ -91,7 +88,7 @@ BT::NodeStatus DetectAndSortQueue::tick()
             // use a lambda to check the queue based on id
             auto it = std::find_if(queue_.begin(), queue_.end(), [&curr_id](const PoseStamped& p)
             { return p.header.frame_id == curr_id;});
-            
+
             // if in the hashmap or if in the queue (meaning the iterator not at the end)
             if(visited_hashmap_.count(curr_id) or (it != queue_.end())){
                 continue;
@@ -110,39 +107,39 @@ BT::NodeStatus DetectAndSortQueue::tick()
         try {
             // robot pose relative to map
             robot_tf = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero);
+
+            double rx = robot_tf.transform.translation.x;
+            double ry = robot_tf.transform.translation.y;
+            double rz = robot_tf.transform.translation.z;
+
+            // this chain gives the displacement from the target to the map and then map to robot
+            // resultant displacement is a vector from the target to the robot
+            // just compute the distance squared
+            std::sort(queue_.begin(), queue_.end(), [rx,ry,rz](const PoseStamped& a, const PoseStamped& b)
+            {
+                double a_x = rx - a.pose.position.x;
+                double a_y = ry - a.pose.position.y;
+                double a_z = rz - a.pose.position.z;
+
+                double dist_a = (a_x*a_x) + (a_y*a_y) + (a_z*a_z);
+
+                double b_x = rx - b.pose.position.x;
+                double b_y = ry - b.pose.position.y;
+                double b_z = rz - b.pose.position.z;
+
+                double dist_b = (b_x*b_x) + (b_y*b_y) + (b_z*b_z);
+
+                return dist_a < dist_b;
+            });
         }
         catch (const tf2::TransformException& ex) {
             RCLCPP_WARN(node_->get_logger(), "TF lookup failed: %s", ex.what());
-            return BT::NodeStatus::SUCCESS;  // skip this tick
+            // skip sort this tick but still publish below
         }
-
-        double rx = robot_tf.transform.translation.x;
-        double ry = robot_tf.transform.translation.y;
-        double rz = robot_tf.transform.translation.z;
-
-        // this chain gives the displacement from the target to the map and then map to robot
-        // resultant displacement is a vector from the target to the robot
-        // just compute the distance squared
-        std::sort(queue_.begin(), queue_.end(), [rx,ry,rz](const PoseStamped& a, const PoseStamped& b)
-        {
-            double a_x = rx - a.pose.position.x;
-            double a_y = ry - a.pose.position.y;
-            double a_z = rz - a.pose.position.z;
-
-            double dist_a = (a_x*a_x) + (a_y*a_y) + (a_z*a_z);
-
-            double b_x = rx - b.pose.position.x;
-            double b_y = ry - b.pose.position.y;
-            double b_z = rz - b.pose.position.z;
-
-            double dist_b = (b_x*b_x) + (b_y*b_y) + (b_z*b_z);
-
-            return dist_a < dist_b;
-        });
-
-        setOutput("geoID_write", queue_);
     }
 
+    // always publish so blackboard reflects removals even when no new message arrived
+    setOutput("geoID_write", queue_);
     return BT::NodeStatus::SUCCESS;
 
 

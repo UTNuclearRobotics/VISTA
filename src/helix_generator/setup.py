@@ -11,11 +11,11 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'scipy'],
     zip_safe=True,
     maintainer='talal',
     maintainer_email='talal.alotaibi@utexas.edu',
-    description='TODO: Package description',
+    description='Helix viewpoint sampler service for NBV mission planning',
     license='Apache-2.0',
     extras_require={
         'test': [
@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'helix_service=helix_generator.helix_server:main',
         ],
     },
 )

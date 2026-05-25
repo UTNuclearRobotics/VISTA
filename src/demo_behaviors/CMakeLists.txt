@@ -19,6 +19,11 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(uuv_interfaces REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(nbv_behaviors REQUIRED)
+find_package(nrg_behaviors REQUIRED)
+find_package(nrg_utility_behaviors REQUIRED)
 
 
 
@@ -33,12 +38,17 @@ add_executable(run_bt
 
 ament_target_dependencies(run_bt
   rclcpp
+  rclcpp_action
   behaviortree_cpp
   nav_msgs
   geometry_msgs
   tf2_ros
   tf2_geometry_msgs
   ament_index_cpp
+  uuv_interfaces
+  nbv_behaviors
+  nrg_behaviors
+  nrg_utility_behaviors
 )
 
 # Specify header search path

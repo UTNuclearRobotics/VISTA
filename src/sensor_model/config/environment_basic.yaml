@@ -1,19 +1,23 @@
 depth_publisher:
   ros__parameters:
-    box_count: 2
+    box_count: 4
     box_size: [1.0, 1.0, 0.5]
     box_positions:
-      box_0: [0.0, 10.0, 0.0]
-      box_1: [0.0, 20.0, 0.0]
+      box_0: [0.0, 20.0, 0.0]
+      box_1: [5.0, 32.0, 0.0]
+      box_2: [2.0, 38.0, 0.0]
+      box_3: [7.0, 44.0, 0.0]
     terrain:
       file_path: assets/flatPlane_200x200m_80kTriangles.obj
 
 meshes_rviz:
   ros__parameters:
-    box_count: 2
+    box_count: 4
     box_size: [1.0, 1.0, 0.5]
     box_positions:
-      box_0: [0.0, 10.0, 0.0]
-      box_1: [0.0, 20.0, 0.0]
+      box_0: [0.0, 20.0, 0.0]
+      box_1: [5.0, 32.0, 0.0]
+      box_2: [2.0, 38.0, 0.0]
+      box_3: [7.0, 44.0, 0.0]
     terrain:
       file_path: assets/flatPlane_200x200m_80kTriangles.obj

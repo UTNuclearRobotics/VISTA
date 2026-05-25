@@ -21,8 +21,8 @@ def generate_launch_description():
     start_rviz = LaunchConfiguration('start_rviz')
     drift_velocity = LaunchConfiguration('drift_velocity')       # idle drift speed
     constant_velocity = LaunchConfiguration('constant_velocity')  # action server navigation speed
-    max_runtime = LaunchConfiguration('max_runtime')
     time_step = LaunchConfiguration('time_step')
+    log_level = LaunchConfiguration('log_level')
     
     # RViz configuration
     rviz_config_file = PathJoinSubstitution([
@@ -58,14 +58,13 @@ def generate_launch_description():
             description='Navigation velocity for Dubins path following (m/s)'
         ),
         DeclareLaunchArgument(
-            'max_runtime',
-            default_value='300.0',
-            description='Maximum runtime for the simulation in seconds'
-        ),
-        DeclareLaunchArgument(
             'time_step',
             default_value='0.1',
             description='Simulation time step in seconds'
+        ),
+        DeclareLaunchArgument(
+            'log_level', default_value='info',
+            description='ROS log level for vista_sim Python nodes (debug, info, warn, error, fatal)'
         ),
 
         # Static transform publishers
@@ -98,7 +97,8 @@ def generate_launch_description():
                     'time_step': time_step,
                     'constant_velocity': drift_velocity,
                 }
-            ]
+            ],
+            arguments=['--ros-args', '--log-level', log_level],
         ),
 
         # Action server — plans and follows Dubins paths at navigation velocity,
@@ -113,9 +113,9 @@ def generate_launch_description():
                     'frame_id': 'ned',
                     'time_step': time_step,
                     'constant_velocity': constant_velocity,
-                    'max_runtime': max_runtime
                 }
-            ]
+            ],
+            arguments=['--ros-args', '--log-level', log_level],
         ),
 
         # Sensor model: sonar → sonar_optical frame convention
@@ -133,6 +133,7 @@ def generate_launch_description():
             executable='meshes_rviz',
             name='meshes_rviz',
             parameters=[sensor_param_config],
+            arguments=['--ros-args', '--log-level', log_level],
         ),
 
         # Sensor model: FLS depth image publisher
@@ -141,6 +142,7 @@ def generate_launch_description():
             executable='sensor_publisher',
             name='depth_publisher',
             parameters=[sensor_param_config],
+            arguments=['--ros-args', '--log-level', log_level],
         ),
 
         # RViz node with configuration file

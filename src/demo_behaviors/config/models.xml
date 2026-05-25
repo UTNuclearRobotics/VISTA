@@ -1,8 +1,306 @@
 <root BTCPP_format="4">
     <TreeNodesModel>
+        <Action ID="ActivatePolicy">
+            <input_port name="roi_extents" type="geometry_msgs::msg::Vector3_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="roi_center" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+        </Action>
+        <Action ID="AddObjectToMoveitCollisionScene">
+            <input_port name="remove" type="bool" default="false">Whether to remove the object with the given ID. This supercedes the replace parameter</input_port>
+            <input_port name="replace" type="bool" default="true">Whether to replace an existing object with the same id or to append to it</input_port>
+            <input_port name="id" type="std::string">The identifier for the object. Useful for referring to it later on</input_port>
+            <input_port name="frame_id" type="std::string">The frame_id of the mesh. shape_msgs/Mesh doesn't store a header by default</input_port>
+            <input_port name="mesh_file" type="std::string">An absolute or URI filepath to a mesh object in a supported format</input_port>
+            <input_port name="mesh" type="std::shared_ptr&lt;shape_msgs::msg::Mesh_&lt;std::allocator&lt;void&gt; &gt; &gt;">The mesh of the object to be placed into the scene</input_port>
+            <input_port name="moveit_namespace" type="std::string" default="">The namespace to prepend to the moveit service name</input_port>
+        </Action>
+        <Action ID="CalculatePlanningPose">
+            <output_port name="planning_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="planning_frame" type="std::string"/>
+            <input_port name="view_frame" type="std::string"/>
+            <input_port name="view_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+        </Action>
+        <Action ID="CheckForServers">
+            <input_port name="timeout" type="float" default="2.000000">Time in seconds to wait for the servers to appear</input_port>
+            <input_port name="servers" type="std::string">A whitespace-separated list of fully qualified server names to check for</input_port>
+        </Action>
+        <Action ID="CheckScoreSaturation">
+            <input_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <input_port name="threshold" type="double"/>
+        </Action>
+        <Control ID="Cleanup"/>
+        <Action ID="ClearCostmap">
+            <input_port name="response_timeout" type="float" default="5.000000">Time to wait for a response in seconds</input_port>
+            <input_port name="discovery_timeout" type="float" default="2.000000">Time to wait for the service to be discovered in seconds</input_port>
+            <input_port name="invert" type="bool" default="false">If set to true, clear outside the radius instead of inside</input_port>
+            <input_port name="radius" type="float" default="0.000000">The radius around the robot to clear</input_port>
+            <input_port name="costmap" type="std::string">The type of costmap to clear. Options are [global, local]</input_port>
+            <input_port name="robot_nav_namespace" type="std::string">The service to call</input_port>
+        </Action>
+        <Action ID="ConcatenatePointclouds">
+            <output_port name="output" type="std::shared_ptr&lt;sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt; &gt;">The output pointcloud if 'override' is set to false</output_port>
+            <input_port name="pointcloud2" type="std::shared_ptr&lt;sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt; &gt;">The second pointcloud to concatenate</input_port>
+            <input_port name="pointcloud1" type="std::shared_ptr&lt;sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt; &gt;">The first pointcloud to concatenate</input_port>
+        </Action>
+        <Action ID="ConcludePolicy">
+            <output_port name="roi_cloud" type="sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <output_port name="scene_cloud" type="sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="return_pointcloud" type="bool"/>
+        </Action>
         <Action ID="DetectAndSortQueue">
             <input_port name="completed_ID_read" type="std::string"/>
             <output_port name="geoID_write" type="std::vector&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::allocator&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt;"/>
+        </Action>
+        <Action ID="DubinsClient">
+            <input_port name="timeout_sec" type="double" default="600.000000">Cancel goal after N seconds (default 10 min)</input_port>
+            <input_port name="planning_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+        </Action>
+        <Action ID="DynamicLoad">
+            <input_port name="tree_path" type="std::string">Absolute filepath of a .xml file describing a BT.CPP tree.</input_port>
+            <input_port name="tree_text" type="std::string">Raw text in XML format describing a BT.CPP tree.</input_port>
+        </Action>
+        <Action ID="FollowJointTrajectory">
+            <input_port name="prefix" type="std::string" default="">The string to prepend to '/follow_joint_trajectory' in the action server name</input_port>
+            <input_port name="joint_trajectory" type="std::shared_ptr&lt;trajectory_msgs::msg::JointTrajectory_&lt;std::allocator&lt;void&gt; &gt; &gt;">The trajectory to execute</input_port>
+        </Action>
+        <Decorator ID="ForEachDouble">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="double">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Decorator ID="ForEachFloat">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="float">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Decorator ID="ForEachInt">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="int">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Decorator ID="ForEachLong">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="long">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Decorator ID="ForEachPose">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Decorator ID="ForEachString">
+            <output_port name="size" type="unsigned long">The number of items that were in the container</output_port>
+            <output_port name="index" type="unsigned long">The index of the current item being processed</output_port>
+            <output_port name="value" type="std::string">The current item being processed</output_port>
+            <inout_port name="break_var" type="bool">Flag to break out of the loop</inout_port>
+            <input_port name="delimiter" type="std::string" default=";">The delimiter to use for separating string inputs. Default to semicolon</input_port>
+            <input_port name="items" type="BT::AnyTypeAllowed">The items to iterate over</input_port>
+        </Decorator>
+        <Action ID="GetBestView">
+            <output_port name="new_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <output_port name="best_view_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <output_port name="new_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <input_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+        </Action>
+        <Action ID="GetCurrentPose">
+            <output_port name="pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The measured pose</output_port>
+            <input_port name="static" type="bool">Whether or not the reference frame is static or dynamic. Dynamic poses have a finite lifetime. Default True</input_port>
+            <input_port name="timeout" type="float">Float time in seconds to wait for the transform to appear. Default 2 seconds</input_port>
+            <input_port name="target_frame" type="std::string">The frame whose location to record</input_port>
+            <input_port name="reference_frame" type="std::string">The frame in which to locate the robot. Defaults to 'map'</input_port>
+        </Action>
+        <Action ID="GetLinkPose">
+            <output_port name="link_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The measured pose of the requested link if the robot is at base_pose</output_port>
+            <input_port name="timeout" type="float" default="2.000000">Float time in seconds to wait for the transform to appear. Default 2 seconds</input_port>
+            <input_port name="base_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The pose of some other link on the robot</input_port>
+            <input_port name="base_frame" type="std::string">The name of the base frame to use for the transform lookup</input_port>
+            <input_port name="link_frame" type="std::string">The frame whose location to record</input_port>
+        </Action>
+        <Action ID="GetMessageFromTopic">
+            <output_port name="value" type="BT::AnyTypeAllowed">The message value (in shared ptr form) received from the topic</output_port>
+            <input_port name="type" type="std::string">The type of the message. If omitted it will be inferred from existing topics</input_port>
+            <input_port name="transient_local" type="bool">Whether or not the topic to subscribe to is published transient_local. Default false</input_port>
+            <input_port name="timeout" type="float"> The maximum time in second to wait for a message. Default 5.0 seconds</input_port>
+            <input_port name="best_effort" type="bool">Whether or not to subscribe with a best-effort reliability policy. Default false</input_port>
+            <input_port name="topic" type="std::string">Fully qualified ROS topic to subscribe to</input_port>
+        </Action>
+        <Action ID="GetMoveitCollisionPointcloud">
+            <output_port name="collision_scene_pointcloud" type="std::shared_ptr&lt;sensor_msgs::msg::PointCloud2_&lt;std::allocator&lt;void&gt; &gt; &gt;"/>
+            <input_port name="timeout" type="float" default="10.000000">The time to wait for the scene to be supplied. Note that large collision scenes can take some time.</input_port>
+            <input_port name="moveit_namespace" type="std::string" default="">The namespace under which to put the collision scene service call. Default no namespace</input_port>
+        </Action>
+        <Action ID="GetMoveitIK">
+            <output_port name="joint_state" type="std::shared_ptr&lt;sensor_msgs::msg::JointState_&lt;std::allocator&lt;void&gt; &gt; &gt;">The solution joint state for the robot</output_port>
+            <input_port name="ik_link_name" type="std::string" default="">The name of the link for which we want to solve IK. Default to the group end effector</input_port>
+            <input_port name="avoid_collisions" type="bool" default="true">Whether or not the IK request should consider the collision objects in the scene</input_port>
+            <input_port name="goal_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The desired pose of the IK link</input_port>
+            <input_port name="group_name" type="std::string">The name of the group for which to request an IK solution</input_port>
+            <output_port name="multi_dof_joint_state" type="std::shared_ptr&lt;sensor_msgs::msg::MultiDOFJointState_&lt;std::allocator&lt;void&gt; &gt; &gt;">The solution joint state for any multi-dof joints in the robot</output_port>
+            <input_port name="timeout" type="float" default="1.000000">How long to wait for the request to return in seconds</input_port>
+            <input_port name="moveit_namespace" type="std::string">The namespace of the move_group node</input_port>
+        </Action>
+        <Action ID="GetROSParameter">
+            <output_port name="value" type="BT::AnyTypeAllowed">The blackboard value to set with the value of the ROS parameter</output_port>
+            <input_port name="shared" type="bool" default="false">Whether to set the output value as a shared pointer. Default false</input_port>
+            <input_port name="type" type="std::string" default="auto">The type of the parameter. Options are 'auto', 'bool', 'string', 'double', 'int'. To specify an array, append '_array' like bool_array</input_port>
+            <input_port name="param" type="std::string">The name of the parameter</input_port>
+            <input_port name="node" type="std::string">The name of the node whose parameter we are getting</input_port>
+        </Action>
+        <Action ID="MakeShared">
+            <output_port name="shared_ptr" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">Shared pointer to input</output_port>
+            <input_port name="value_in" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;">Value to make shared pointer from</input_port>
+        </Action>
+        <Action ID="MarkTargetComplete">
+            <output_port name="completed_id_write" type="std::string"/>
+            <input_port name="current_id_read" type="std::string"/>
+        </Action>
+        <Action ID="MoveArmLinear">
+            <input_port name="allow_partial_plan" type="bool" default="false">Whether a partial plan should be executed before returning</input_port>
+            <input_port name="motion_timeout" type="float">The time to wait for the robot to complete its motion in seconds</input_port>
+            <input_port name="planning_timeout" type="float">The time to wait for the planner to compute in seconds</input_port>
+            <input_port name="max_cartesian_speed" type="float" default="0.000000">Maximum cartesian speed in m/s</input_port>
+            <input_port name="max_step" type="float" default="0.020000">The maximum distance between interpolated waypoints</input_port>
+            <input_port name="group_name" type="std::string">The moveit planning group for which to plan</input_port>
+            <input_port name="link_name" type="std::string" default="">The link that we are planning for</input_port>
+            <input_port name="action_server" type="std::string">The fully qualified action server name to call on. Overrides 'moveit_namespace' if set</input_port>
+            <output_port name="incomplete_trajectory" type="bool">Whether or not the computer trajectory covers less that 100 percent of the waypoints</output_port>
+            <input_port name="moveit_namespace" type="std::string" default="/">The namespace to prepend to standard moveit service/action names</input_port>
+            <input_port name="jump_threshold" type="float" default="0.000000">The maximum joint movement between interpolated waypoints</input_port>
+            <input_port name="waypoints" type="std::shared_ptr&lt;geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt; &gt;">The set of poses to move the end effector through</input_port>
+            <input_port name="target_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The pose to move the end effector to</input_port>
+        </Action>
+        <Action ID="MoveHandToPose">
+            <input_port name="axis_5dof" type="std::string" default="">The axis about which to give rotational freedom. Leave blank for 6DoF pose. Options are [x, y, z]. Applies to sample-based planners only</input_port>
+            <input_port name="max_acceleration_scaling_factor" type="float" default="1.000000">Ratio of maximum allowed joint accelerations to those specified in the robot config</input_port>
+            <input_port name="max_cartesian_speed" type="float" default="0.000000">Maximum cartesian speed in m/s</input_port>
+            <input_port name="motion_timeout" type="float" default="1000000000.000000">The time to wait for the robot to complete its motion in seconds. Default unlimited</input_port>
+            <input_port name="max_velocity_scaling_factor" type="float" default="1.000000">Ratio of maximum allowed joint velocities to those specified in the robot config</input_port>
+            <input_port name="planning_timeout" type="float" default="5.000000">The time to wait for the planner to compute in seconds. Default 5 seconds</input_port>
+            <input_port name="workspace_max_corner" type="std::shared_ptr&lt;geometry_msgs::msg::PointStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The max corner for the robot's allowable operating region. Omit for no limits</input_port>
+            <input_port name="target_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The pose to move the end effector to</input_port>
+            <input_port name="moveit_namespace" type="std::string" default="/">The namespace to prepend to standard moveit service/action names</input_port>
+            <input_port name="action_server" type="std::string">The fully qualified action server name to call on. Overrides 'moveit_namespace' for the action server if set. Moveit namespace may still be needed for the cartesian planner</input_port>
+            <input_port name="group_name" type="std::string">The moveit planning group for which to plan</input_port>
+            <input_port name="link_name" type="std::string">The link that we are planning for</input_port>
+            <input_port name="pipeline_id" type="std::string" default="">The planning pipeline to use for planning</input_port>
+            <input_port name="planner_id" type="std::string" default="">The planner to use</input_port>
+            <input_port name="path_constraints" type="std::string" default="">semicolon delimited constraints to place on the resulting end effector path. Options are [LINEAR, FIXED_ORIENTATION]</input_port>
+            <input_port name="num_planning_attempts" type="int" default="1">Number of plans to create before picking the shortest one. Default 1</input_port>
+            <input_port name="replan_attempts" type="int" default="0">Maximum number of dynamic replanning events if the path becomes infeasible during execution. Default 0</input_port>
+            <input_port name="workspace_min_corner" type="std::shared_ptr&lt;geometry_msgs::msg::PointStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">The min corner for the robot's allowable operating region. Omit for no limits</input_port>
+            <input_port name="replan_delay" type="float" default="0.000000">Time to wait before replanning events</input_port>
+            <input_port name="orientation_constraint_tolerance" type="float" default="5.000000">Acceptable deviation from a fixed orientation path in degrees</input_port>
+            <input_port name="linear_constraint_tolerance" type="float" default="0.000500">Acceptable deviation from a linear path in meters. Values below 0.001 will be considered equality constraints</input_port>
+        </Action>
+        <Action ID="MoveToJointState">
+            <input_port name="max_velocity_scaling_factor" type="float" default="1.000000">The speed factor by which to scale the resulting trajectory</input_port>
+            <input_port name="moveit_namespace" type="std::string" default="/">The namespace to prepend to the action server topic name</input_port>
+            <input_port name="timeout" type="float">Maximum planning time in seconds. Default 5 seconds</input_port>
+            <input_port name="group_name" type="std::string">The MoveIt planning group to invoke</input_port>
+            <input_port name="joint_state" type="std::shared_ptr&lt;sensor_msgs::msg::JointState_&lt;std::allocator&lt;void&gt; &gt; &gt;">The joint state for the group to plan and move to</input_port>
+        </Action>
+        <Action ID="NavigateToPose">
+            <input_port name="robot_nav_namespace" type="std::string"/>
+            <input_port name="target_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;"/>
+        </Action>
+        <Action ID="PauseUntil">
+            <input_port name="value" type="bool">A value to evaluate as the resume condition</input_port>
+            <input_port name="code" type="std::string">The code to evaluate as the resume condition</input_port>
+        </Action>
+        <Action ID="Print">
+            <input_port name="message" type="std::string"/>
+        </Action>
+        <Action ID="PublishMessageToTopic">
+            <input_port name="transient_local" type="bool" default="false">Whether the publisher should be transient local</input_port>
+            <input_port name="value" type="BT::AnyTypeAllowed">The value to publish</input_port>
+            <input_port name="best_effort" type="bool" default="false">Whether the publisher should be best effort</input_port>
+            <input_port name="topic" type="std::string">The topic to publish to</input_port>
+        </Action>
+        <Action ID="PublishTransform">
+            <input_port name="from_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;">A pose representing the pose of the child frame in the parent frame. If this is set, only additionally set child frame</input_port>
+            <input_port name="qy" type="float" default="0.000000">The y component of the transform rotation</input_port>
+            <input_port name="roll" type="float">The roll component of the transform rotation</input_port>
+            <input_port name="parent_frame" type="std::string">The frame in which the transform is defined</input_port>
+            <input_port name="child_frame" type="std::string">The new frame to publish</input_port>
+            <input_port name="x" type="float" default="0.000000">The x coordinate of the transform translation</input_port>
+            <input_port name="static" type="bool" default="true">Whether the transform is a static transform</input_port>
+            <input_port name="qw" type="float" default="1.000000">The w component of the transform rotation</input_port>
+            <input_port name="qz" type="float" default="0.000000">The z component of the transform rotation</input_port>
+            <input_port name="y" type="float" default="0.000000">The y coordinate of the transform translation</input_port>
+            <input_port name="qx" type="float" default="0.000000">The x component of the transform rotation</input_port>
+            <input_port name="z" type="float" default="0.000000">The z coordinate of the transform translation</input_port>
+            <input_port name="pitch" type="float">The pitch component of the transform rotation</input_port>
+            <input_port name="yaw" type="float">The yaw component of the transform rotation</input_port>
+        </Action>
+        <Control ID="RepeatWhile">
+            <output_port name="index" type="unsigned long">The current index of the repeated loop</output_port>
+            <input_port name="reactive" type="bool" default="true">Whether the condition node should be run every tick, or just when restarting the repeated node</input_port>
+            <input_port name="max_count" type="unsigned long" default="18446744073709551615">Optional maximum number of times to repeat before returning success</input_port>
+        </Control>
+        <Action ID="SampleViewPosesHelix">
+            <output_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="mount_angle_deg" type="double"/>
+            <input_port name="psi_max_deg" type="double"/>
+            <input_port name="clearance_height" type="double"/>
+            <input_port name="delta_theta" type="double"/>
+            <input_port name="helix_height" type="double"/>
+            <input_port name="num_shells" type="int"/>
+            <input_port name="radius_multiplier" type="double"/>
+            <input_port name="min_radius" type="double"/>
+        </Action>
+        <Action ID="SetROIExtents">
+            <output_port name="roi_extents" type="geometry_msgs::msg::Vector3_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="z_length" type="double"/>
+            <input_port name="y_length" type="double"/>
+            <input_port name="x_length" type="double"/>
+        </Action>
+        <Action ID="SetROSParameter">
+            <input_port name="type" type="std::string">The type of the parameter. Options are 'bool', 'string', 'double', 'int'. To specify an array, append '_array' like bool_array</input_port>
+            <input_port name="value" type="BT::AnyTypeAllowed">The value to set the parameter</input_port>
+            <input_port name="param" type="std::string">The name of the parameter</input_port>
+            <input_port name="node" type="std::string">The name of the node whose parameter we are setting</input_port>
+        </Action>
+        <Action ID="SetViews">
+            <output_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <input_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="sensor_name" type="std::string"/>
+        </Action>
+        <Action ID="SpinSome">
+            <input_port name="node" type="std::shared_ptr&lt;rclcpp::Node&gt;">Optional node to spin. If not set, it will spin the node used in this behavior's constructor</input_port>
+        </Action>
+        <Decorator ID="Time">
+            <output_port name="elapsed_time" type="double">The time taken for the child node to run in seconds</output_port>
+        </Decorator>
+        <Action ID="TriggerService">
+            <input_port name="empty" type="bool">Whether to use an Empty service type instead of a Trigger service type</input_port>
+            <input_port name="timeout" type="float" default="2.000000">Time in seconds to wait for a response</input_port>
+            <input_port name="service_name" type="std::string">Fully qualified name of the service to call</input_port>
+        </Action>
+        <Action ID="WaitForInput">
+            <input_port name="service_name" type="std::string" default="/proceed">The name of the service to use for service proceeding</input_port>
+            <input_port name="timeout" type="float" default="0.000000">Time to wait for user input in seconds. Default 0 (no timeout)</input_port>
+            <input_port name="use_stdin" type="bool" default="true">Whether or not to open stdin for proceeding</input_port>
+            <input_port name="use_service" type="bool" default="true">Whether or not to create a Trigger service for proceeding</input_port>
+        </Action>
+        <Action ID="isQueueNotEmpty">
+            <output_port name="target_pose_write" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <output_port name="current_ID_write" type="std::string"/>
+            <input_port name="geoID_read" type="std::vector&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::allocator&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt;"/>
         </Action>
     </TreeNodesModel>
 </root>

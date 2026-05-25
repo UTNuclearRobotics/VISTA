@@ -81,4 +81,19 @@ ros2 run tf2_ros tf2_echo ned base_link
 | `time_step` | `0.1` | Both | Simulation dt (seconds) |
 | `drift_velocity` | `0.25` | Drift service | Idle drift speed (m/s) |
 | `constant_velocity` | `0.5` | Action server | Navigation speed for Dubins paths (m/s) |
-| `max_runtime` | `300.0` | Action server | Goal timeout (seconds) |
+| `log_level` | `info` | All Python nodes | ROS log level (debug/info/warn/error/fatal) applied to drift_service, vehicle_sim_server, meshes_rviz, depth_publisher |
+
+### Log level usage
+
+```bash
+# Default (info)
+ros2 launch vista_sim vista_sim_launch.py
+
+# Debug all Python nodes
+ros2 launch vista_sim vista_sim_launch.py log_level:=debug
+
+# Quiet (warnings/errors only)
+ros2 launch vista_sim vista_sim_launch.py log_level:=warn
+```
+
+When launched via `demo_behaviors/demo_mission_launch.py`, the `log_level` arg is forwarded from the parent, so a single launch arg controls verbosity across the whole stack.

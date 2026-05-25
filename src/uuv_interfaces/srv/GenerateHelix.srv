@@ -1,0 +1,10 @@
+float64 r_min
+float64 radius_multiplier
+int32 num_shells
+float64 helix_height
+float64 clearance
+float64 psi_max_deg
+float64 delta_theta_deg
+float64 mount_angle_deg
+---
+geometry_msgs/PoseArray poses

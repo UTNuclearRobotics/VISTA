@@ -16,6 +16,17 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>ament_index_cpp</depend>
+  <depend>uuv_interfaces</depend>
+  <depend>rclcpp_action</depend>
+  <depend>nbv_behaviors</depend>
+  <depend>nrg_behaviors</depend>
+  <depend>nrg_utility_behaviors</depend>
+
+  <!-- Runtime-only deps for launch file (not built against, but launched) -->
+  <exec_depend>vista_sim</exec_depend>
+  <exec_depend>helix_generator</exec_depend>
+  <exec_depend>nbv_cpp</exec_depend>
+  <exec_depend>sensor_model</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -1,19 +1,43 @@
 <root BTCPP_format = "4">
     <BehaviorTree ID="MainTree">
-        <Repeat num_cycles = "2">
+      <Sequence>
+
+        <!-- Vehicle Sim (drift + Dubins navigation) -->
+        <CheckForServers timeout="10" servers="
+            /pause_drift
+            /resume_drift
+            /pose_to_pose/_action/send_goal"/>
+
+        <!-- Viewpoint Sampler -->
+        <CheckForServers timeout="10" servers="/generate_helix"/>
+
+        <!-- Next Best View -->
+        <CheckForServers timeout="10" servers="
+            /next_best_view_server/activate_policy
+            /next_best_view_server/set_views
+            /next_best_view_server/conclude_policy"/>
+
+        <Repeat num_cycles = "4">
             <Parallel success_count="1" failure_count="1">
                 <Repeat num_cycles = "-1">
                     <DetectAndSortQueue geoID_write="{queue}" completed_ID_read="{completed_id}"/>
                 </Repeat>
-                <Fallback>
-                    <Sequence>
-                        <isQueueNotEmpty geoID_read="{queue}" current_ID_write="{current_ID}" target_pose_write = "{current_pose}"/>
-                        <SubTree ID="NBVOnTarget" _autoremap="true"/>
-                    </Sequence>
-                    <!-- TODO: ReactiveSequence → < x hours? → Search Sub-tree -->
-                </Fallback>
+                <ReactiveFallback>
+                    <!-- RetryUntilSuccessful is a placeholder so the BT doesn't die when the
+                         queue is empty. Replace with BayesianSearch as the second ReactiveFallback
+                         child, then drop this wrapper. -->
+                    <RetryUntilSuccessful num_attempts="-1">
+                        <Sequence>
+                            <isQueueNotEmpty geoID_read="{queue}" current_ID_write="{current_ID}" target_pose_write = "{current_pose}"/>
+                            <!-- _autoremap="true": share all blackboard entries with the subtree  -->
+                            <SubTree ID="NBVOnTarget" _autoremap="true"/>
+                        </Sequence>
+                    </RetryUntilSuccessful>
+                    <!-- TODO: ReactiveSequence → isWithinTimeLimit → BayesianSearch sub-tree -->
+                </ReactiveFallback>
             </Parallel>
         </Repeat>
+      </Sequence>
     </BehaviorTree>
 </root>
 

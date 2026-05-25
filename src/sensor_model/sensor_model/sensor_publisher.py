@@ -113,7 +113,7 @@ class DepthPublisher(Node):
         for gid in detected_ids:
             pose = PoseStamped() #appending adds a reference to the same object. so it doesn't copy. explicit initialization
             centroid = self.fls_sensor.box_geometryID_hashmap[gid]
-            self.get_logger().info(f"Detected geometry ID: {gid}, centroid: {centroid}")  
+            self.get_logger().debug(f"Detected geometry ID: {gid}, centroid: {centroid}")
             pose.header.stamp = detect_msg.header.stamp
             pose.header.frame_id = str(gid)
             pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = centroid

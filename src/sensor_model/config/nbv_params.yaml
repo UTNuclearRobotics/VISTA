@@ -1,10 +1,9 @@
 next_best_view_server:
   ros__parameters:
-    base_link: base_link
     debug_viewpoint_idx: -1
     nbv_policy:
-      min_z_dist: 3.0
-    num_threads: 1
+      min_z_dist: 0.0
+    num_threads: 8
     sensor_names: ['fls']
     sensors: 
       fls:
@@ -23,11 +22,11 @@ next_best_view_server:
     task_frame: map
     tsdf:
       angular_motion_threshold: 0.0
-      fine_voxel_scale: 0.0
+      fine_voxel_scale: 0.5
       fine_voxel_trunc: 0.0
       padding: 0.5
       position_motion_threshold: 0.0
-      truncation_distance: 0.3
+      truncation_distance: 0.4
       voxel_size: 0.1
 
 #TODO: ensure this yaml file is accessed by launch files

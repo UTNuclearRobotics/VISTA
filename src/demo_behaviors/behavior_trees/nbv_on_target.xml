@@ -14,8 +14,7 @@
             <ActivatePolicy roi_center="{current_pose}" roi_extents="{roi_extents}"/>
 
             <!-- Sample candidate viewpoints on helix manifold around target (custom) -->
-            <SampleViewPoses
-                roi_center="{current_pose}"
+            <SampleViewPosesHelix
                 clearance_height="1"
                 helix_height="5"
                 min_radius="2.0"
@@ -23,16 +22,17 @@
                 num_shells="3"
                 delta_theta="30"
                 psi_max_deg="15"
+                mount_angle_deg="45"
                 view_poses="{poses}"
             />
 
             <!-- Initial scoring of all candidates (do-while seed) -->
-            <SetViews view_poses="{poses}" fractional_scores="{scores}"/>
+            <SetViews sensor_name="fls" view_poses="{poses}" fractional_scores="{scores}"/>
 
             <!-- NBV loop: repeat while not saturated -->
             <RepeatWhile>
                 <Inverter>
-                    <CheckScoreSaturation threshold="0.1" fractional_scores="{scores}"/>
+                    <CheckScoreSaturation threshold="0.01" fractional_scores="{scores}"/>
                 </Inverter>
                 <Sequence>
                     <!-- Select highest-scored viewpoint, remove from candidate list -->
@@ -43,19 +43,19 @@
                         new_poses="{poses}"
                         new_scores="{scores}"
                     />
-                    <!-- Back-propagate optical frame pose to base_link pose in map frame -->
+                    <!-- Back-propagate optical-frame pose to base_link pose (still in roi_frame) -->
                     <CalculatePlanningPose
                         view_pose="{best_view_pose}"
                         view_frame="sonar_optical"
                         planning_frame="base_link"
                         planning_pose="{planning_pose}"
                     />
-                    <!-- Convert to NED and send Dubins action goal; skip if unreachable -->
+                    <!-- Convert to NED and send Dubins action goal; cancel after timeout, skip if unreachable -->
                     <ForceSuccess>
-                        <DubinsClient planning_pose="{planning_pose}"/>
+                        <DubinsClient planning_pose="{planning_pose}" timeout_sec="600"/>
                     </ForceSuccess>
                     <!-- Re-score remaining candidates with updated TSDF -->
-                    <SetViews view_poses="{poses}" fractional_scores="{scores}"/>
+                    <SetViews sensor_name="fls" view_poses="{poses}" fractional_scores="{scores}"/>
                 </Sequence>
             </RepeatWhile>
 

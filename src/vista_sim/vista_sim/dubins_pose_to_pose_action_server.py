@@ -13,7 +13,6 @@ Key features
 """
 
 import math
-import time
 from threading import Event
 
 import rclpy
@@ -45,12 +44,9 @@ class VehiclePoseActionServer(Node):
         self.declare_parameter("frame_id", "ned")
         self.declare_parameter("time_step", 0.1)
         self.declare_parameter("constant_velocity", 0.5)
-        self.declare_parameter("max_runtime", 300.0)
-
         self.frame_id = self.get_parameter("frame_id").value
         self.dt = self.get_parameter("time_step").value
         self.constant_velocity = self.get_parameter("constant_velocity").value
-        self.max_runtime = self.get_parameter("max_runtime").value
 
         # Vehicle state — always valid, never None
         self._eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -218,7 +214,6 @@ class VehiclePoseActionServer(Node):
 
         result = PoseToPose.Result()
         rate = self.create_rate(1.0 / self.dt)
-        start_time = time.time()
 
         # --- Follow path ---
         while True:
@@ -257,23 +252,13 @@ class VehiclePoseActionServer(Node):
             feedback.yaw_error_remaining = yaw_err
             goal_handle.publish_feedback(feedback)
 
-            if dist < 1.0 and yaw_err < 0.1:
+            if dist < 1.0 and yaw_err < 0.3:
                 self._eta, self._nu = eta, nu
                 goal_handle.succeed()
                 self.get_logger().info(
                     f"Goal reached. pos_err={dist:.3f}m  yaw_err={math.degrees(yaw_err):.2f}deg"
                 )
                 result.result_message = "Succeeded"
-                result.distance_to_goal = dist
-                result.yaw_error_at_goal = yaw_err
-                self.resume_drift(eta, nu)
-                return result
-
-            if time.time() - start_time > self.max_runtime:
-                self._eta, self._nu = eta, nu
-                goal_handle.abort()
-                self.get_logger().warning("Max runtime exceeded – aborting.")
-                result.result_message = "Aborted – timeout"
                 result.distance_to_goal = dist
                 result.yaw_error_at_goal = yaw_err
                 self.resume_drift(eta, nu)
