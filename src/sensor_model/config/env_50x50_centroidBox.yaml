@@ -1,23 +1,17 @@
 depth_publisher:
   ros__parameters:
-    box_count: 4
+    box_count: 1
     box_size: [1.0, 1.0, 0.5]
     box_positions:
-      box_0: [10.0, 10.0, 0.0]
-      box_1: [40.0, 10.0, 0.0]
-      box_2: [40.0, 40.0, 0.0]
-      box_3: [10.0, 40.0, 0.0]
+      box_0: [28.0, 28.0, 0.0]
     terrain:
       file_path: assets/flatPlane_50x50m.obj
 
 meshes_rviz:
   ros__parameters:
-    box_count: 4
+    box_count: 1
     box_size: [1.0, 1.0, 0.5]
     box_positions:
-      box_0: [10.0, 10.0, 0.0]
-      box_1: [40.0, 10.0, 0.0]
-      box_2: [40.0, 40.0, 0.0]
-      box_3: [10.0, 40.0, 0.0]
+      box_0: [28.0, 28.0, 0.0]
     terrain:
       file_path: assets/flatPlane_50x50m.obj

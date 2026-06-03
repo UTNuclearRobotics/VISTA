@@ -34,7 +34,7 @@ Then return to the workspace root and build everything.
 
 ```bash
 cd ~/projects/VISTA_ws
-colcon build --packages-up-to demo_behaviors --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
@@ -47,7 +47,7 @@ ros2 launch demo_behaviors demo_mission_launch.py
 ```
 
 This starts:
-- `vista_sim` (simulator, Dubins action server, sensor publisher, drift service, RViz, static TFs)
+- `vista_sim` (simulator, Dubins action server, sensor publisher, RViz, static TFs)
 - `helix_service` (Python service from helix_generator)
 - `next_best_view_server` (from nbv_cpp, configured via `sensor_model/config/nbv_params.yaml`)
 - `bayesian_search_server` (probability map + next-waypoint service for the search subtree)

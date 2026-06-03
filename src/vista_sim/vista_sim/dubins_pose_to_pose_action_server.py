@@ -13,18 +13,17 @@ Key features
 """
 
 import math
-from threading import Event
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, GoalResponse, CancelResponse
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from tf_transformations import quaternion_from_euler
 from tf2_ros import TransformBroadcaster
 from uuv_interfaces.action import PoseToPose
-from uuv_interfaces.srv import PauseDrift, ResumeDrift
 
 from vista_sim.simple_vehicle_sim_v3 import (
     Eta,
@@ -44,17 +43,27 @@ class VehiclePoseActionServer(Node):
         self.declare_parameter("frame_id", "ned")
         self.declare_parameter("time_step", 0.1)
         self.declare_parameter("constant_velocity", 0.5)
+        self.declare_parameter("drift_velocity", 0.25)
         self.frame_id = self.get_parameter("frame_id").value
         self.dt = self.get_parameter("time_step").value
         self.constant_velocity = self.get_parameter("constant_velocity").value
+        self._drift_velocity = self.get_parameter("drift_velocity").value
 
-        # Vehicle state — always valid, never None
-        self._eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        self._nu = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        # Vehicle state — always valid, never None. This node is the SOLE owner
+        # of the ned->base_link transform. execute_cb broadcasts during a goal;
+        # the idle-drift timer broadcasts between goals. _goal_active gates the
+        # two so they never publish concurrently — there is no second node and
+        # no pause/resume RPC to desync (that desync was the 20 Hz dual-publish
+        # that produced the flicker).
+        
+        # initializing eta also determines its initial position relative to ned.
+        self._eta = Eta(-5.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self._nu = Nu(self._drift_velocity, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self._goal_active = False
 
         # TF Broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
-        self._broadcast_origin_tf()
+        self._broadcast_initial()
 
         # Action Server with cancellation support
         motion_cb_group = MutuallyExclusiveCallbackGroup()
@@ -68,11 +77,11 @@ class VehiclePoseActionServer(Node):
             callback_group=motion_cb_group,
         )
 
-        # Drift service clients (ReentrantCallbackGroup so the executor can
-        # process the service response while execute_cb blocks on Event.wait)
-        service_cb_group = ReentrantCallbackGroup()
-        self._pause_drift_cli = self.create_client(PauseDrift, 'pause_drift', callback_group=service_cb_group)
-        self._resume_drift_cli = self.create_client(ResumeDrift, 'resume_drift', callback_group=service_cb_group)
+        # Idle-drift timer — propagates the vehicle at idle drift velocity and
+        # broadcasts base_link when no goal is executing. Gated by _goal_active
+        # so it stays silent during navigation (execute_cb owns the broadcast
+        # then). Replaces the former external drift_service + pause/resume RPCs.
+        self.create_timer(self.dt, self._idle_drift_cb)
 
         self.get_logger().info("Vehicle Pose Action Server ready")
 
@@ -151,31 +160,31 @@ class VehiclePoseActionServer(Node):
         t.transform.rotation = pose.pose.orientation
         self.tf_broadcaster.sendTransform(t)
 
-    def _broadcast_origin_tf(self):
-        """Broadcast an identity ned -> base_link transform at startup."""
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = self.frame_id
-        t.child_frame_id = "base_link"
-        t.transform.rotation.w = 1.0
-        self.tf_broadcaster.sendTransform(t)
+    def _broadcast_initial(self):
+        """Broadcast the initial ned -> base_link transform derived from _eta."""
+        self.broadcast_tf(self.eta_to_pose_stamped(self._eta))
 
-    def pause_drift(self):
-        event = Event()
-        future = self._pause_drift_cli.call_async(PauseDrift.Request())
-        future.add_done_callback(lambda _: event.set())
-        event.wait()
-        response = future.result()
-        return Eta(*response.eta), Nu(*response.nu)
+    def _idle_drift_cb(self):
+        """Propagate idle drift and broadcast base_link between goals.
 
-    def resume_drift(self, eta, nu):
-        request = ResumeDrift.Request()
-        request.eta = list(eta)
-        request.nu = list(nu)
-        event = Event()
-        future = self._resume_drift_cli.call_async(request)
-        future.add_done_callback(lambda _: event.set())
-        event.wait()
+        Gated by _goal_active: while a goal is executing, execute_cb owns the
+        base_link broadcast and this returns immediately, so the two never
+        publish the transform concurrently. With no second node and no RPC,
+        there is nothing left to desync — base_link stays a single 10 Hz stream.
+        """
+        if self._goal_active:
+            return
+        eta = self._eta
+        self._eta = Eta(
+            north=eta.north + self._drift_velocity * math.cos(eta.yaw) * self.dt,
+            east=eta.east + self._drift_velocity * math.sin(eta.yaw) * self.dt,
+            depth=eta.depth,
+            roll=0.0,
+            pitch=0.0,
+            yaw=eta.yaw,
+        )
+        self._nu = Nu(self._drift_velocity, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self.broadcast_tf(self.eta_to_pose_stamped(self._eta))
     # ------------------------------------------------------------------
     # Execute callback – runs in its own thread (MultiThreadedExecutor)
     # ------------------------------------------------------------------
@@ -185,9 +194,14 @@ class VehiclePoseActionServer(Node):
         """Blocking execution loop: plan once, then step the vehicle model."""
         self.get_logger().info("Execution started.")
 
+        # Take ownership of the base_link broadcast for this goal; the idle-
+        # drift timer stays silent while this is True.
+        self._goal_active = True
+
         goal_eta = self.pose_stamped_to_eta(goal_handle.request.goal_pose)
 
-        eta, nu = self.pause_drift()
+        # Seed from the node's current (idle-drift) pose instead of an RPC.
+        eta, nu = self._eta, self._nu
 
 
         # --- Plan path once ---
@@ -214,17 +228,18 @@ class VehiclePoseActionServer(Node):
 
         result = PoseToPose.Result()
         rate = self.create_rate(1.0 / self.dt)
+        min_dist = float("inf")  # closest approach seen so far
 
         # --- Follow path ---
         while True:
             if goal_handle.is_cancel_requested:
                 self._eta, self._nu = eta, nu
+                self._goal_active = False  # hand base_link back to idle drift
                 goal_handle.canceled()
                 self.get_logger().info("Goal canceled.")
                 result.result_message = "Canceled"
                 result.distance_to_goal = -1.0
                 result.yaw_error_at_goal = -1.0
-                self.resume_drift(eta, nu)
                 return result
 
             control = vehicle.calc_control_input(eta)
@@ -240,6 +255,10 @@ class VehiclePoseActionServer(Node):
                 + (eta.east - goal_eta.east) ** 2
                 + (eta.depth - goal_eta.depth) ** 2
             )
+            min_dist = min(min_dist, dist)
+
+            # yaw_err: shortest angular distance between current heading and goal heading.
+            # atan2(sin(Δ), cos(Δ)) wraps the difference safely into [-π, π].
             yaw_err = abs(math.atan2(
                 math.sin(eta.yaw - goal_eta.yaw),
                 math.cos(eta.yaw - goal_eta.yaw),
@@ -251,16 +270,37 @@ class VehiclePoseActionServer(Node):
             feedback.yaw_error_remaining = yaw_err
             goal_handle.publish_feedback(feedback)
 
-            if dist < 1.0 and yaw_err < 0.3:
+            # Nominal success: within position and heading thresholds.
+            reached = dist < 1.0 and yaw_err < 0.3
+
+            # Miss detection: path fully consumed (closest waypoint is the last one) and
+            # the vehicle is receding from its closest approach. Using path position rather
+            # than a geometric bearing check avoids false triggers on Dubins arcs, where
+            # the vehicle legitimately heads away from the goal mid-path before curving back.
+            pos = np.array([eta.north, eta.east])
+            closest_idx = int(np.argmin(np.sum((vehicle.path[:, :2] - pos) ** 2, axis=1)))
+            at_path_end = closest_idx == len(vehicle.path) - 1
+            missed = at_path_end and dist > min_dist + 0.25
+            self.get_logger().debug(
+                f"wp={closest_idx}/{len(vehicle.path)-1}  dist={dist:.2f}  min={min_dist:.2f}  end={at_path_end}"
+            )
+
+            if reached or missed:
                 self._eta, self._nu = eta, nu
+                self._goal_active = False  # hand base_link back to idle drift
                 goal_handle.succeed()
-                self.get_logger().info(
-                    f"Goal reached. pos_err={dist:.3f}m  yaw_err={math.degrees(yaw_err):.2f}deg"
-                )
-                result.result_message = "Succeeded"
+                if reached:
+                    self.get_logger().info(
+                        f"Goal reached. pos_err={dist:.3f}m  yaw_err={math.degrees(yaw_err):.2f}deg"
+                    )
+                else:
+                    self.get_logger().warn(
+                        f"Goal declared done (miss detected). "
+                        f"dist={dist:.3f}m  min_dist={min_dist:.3f}m"
+                    )
+                result.result_message = "Succeeded" if reached else "Missed"
                 result.distance_to_goal = dist
                 result.yaw_error_at_goal = yaw_err
-                self.resume_drift(eta, nu)
                 return result
 
             rate.sleep()
