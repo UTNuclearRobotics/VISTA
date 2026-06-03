@@ -1,4 +1,4 @@
-# demo_behaviors
+# ROSMOSIS/VISTA
 
 > **Note:** this README is an LLM-written first draft based on the package's code and comments. Sections may need refinement as the package evolves.
 
