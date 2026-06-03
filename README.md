@@ -31,7 +31,7 @@ Clone the three external submodules into `src/`:
 ```bash
 cd ~/projects/VISTA_ws/src
 
-# NBV behaviors — use rosmosis branch (main requires non-public magellan_interfaces)
+# NBV behaviors
 git clone git@github.com:UTNuclearRobotics/sample_nbv_behaviors.git
 cd sample_nbv_behaviors && git checkout rosmosis && cd ..
 
