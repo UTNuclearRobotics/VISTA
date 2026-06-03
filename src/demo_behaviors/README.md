@@ -163,7 +163,7 @@ Sample NBV behaviors (from sample_nbv_behaviors) use a different pattern — eac
 
 ## Related Packages
 
-- [vista_sim](../vista_sim/README.md) — simulator, Dubins action server, drift service. See its README for sim-specific parameters and environments.
+- [vista_sim](../vista_sim/README.md) — simulator, Dubins action server. See its README for sim-specific parameters and environments.
 - `helix_generator` — Python service publishing helix-sampled viewpoints
 - `nbv_cpp` — TSDF + NBV scoring server
 - `uuv_interfaces` — message, service, and action definitions (`GenerateHelix.srv`, `PoseToPose.action`, etc.)

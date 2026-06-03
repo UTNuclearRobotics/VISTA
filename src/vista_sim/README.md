@@ -8,7 +8,7 @@ Simulation package for UUV kinematics with Dubins path planning and drift dynami
 
 ```bash
 cd ~/projects/VISTA_ws
-colcon build --packages-select uuv_interfaces vista_sim
+colcon build --packages-up-to demo_behaviors --symlink-install
 source install/setup.bash
 ```
 
@@ -18,16 +18,13 @@ source install/setup.bash
 # Launch with default flat seabed
 ros2 launch vista_sim vista_sim_launch.py
 
-# Launch with procedural rolling seabed
-ros2 launch vista_sim vista_sim_launch.py environment:=environment_seabed_basic
-
-# Launch with hill/valley terrain
-ros2 launch vista_sim vista_sim_launch.py environment:=environment_hill_valley
+# Launch with a specific environment
+ros2 launch vista_sim vista_sim_launch.py environment:=environment_50x50
 
 # Launch without RViz
 ros2 launch vista_sim vista_sim_launch.py start_rviz:=false
 
-# Override parameters
+# Override velocity and time step
 ros2 launch vista_sim vista_sim_launch.py drift_velocity:=0.1 constant_velocity:=1.0 time_step:=0.05
 ```
 
@@ -35,53 +32,69 @@ The `environment` argument selects a config yaml from `sensor_model/config/` (om
 
 | Environment | Description |
 |---|---|
-| `environment_basic` | Flat 200x200m seabed (default) |
+| `environment_basic` | Flat seabed, no objects (default) |
 | `environment_seabed_basic` | Procedural rolling seabed with roughness |
-| `environment_hill_valley` | Valley at box_0 (0,10), hill at box_1 (0,20) |
+| `environment_50x50` | Flat 50×50m arena, four boxes at corners |
+| `env_50x50_centroidBox` | Flat 50×50m arena, single box offset from centroid |
+| `env_50x50_cluster` | Flat 50×50m arena, three boxes clustered mid-arena + one corner |
+| `env_50x50_cluster_seabed` | Procedural seabed with divot at cluster site, same box layout |
 
 ### Send a Goal (separate terminal)
 
 ```bash
-# Source first
 source ~/projects/VISTA_ws/install/setup.bash
-
-# Send goal via action client node
-ros2 run vista_sim dubins_pose_to_pose_action_client \
-  --ros-args -p goal_x:=5.0 -p goal_y:=5.0 -p goal_z:=0.0 -p goal_yaw:=0.0
+ros2 action send_goal --feedback /pose_to_pose uuv_interfaces/action/PoseToPose \
+  "{goal_pose: {header: {frame_id: 'ned'}, pose: {position: {x: 25.0, y: 25.0, z: 0.0}, orientation: {w: 1.0}}}}"
 ```
 
-### Verify Drift Service
+### Verify TF broadcast
 
 ```bash
-# Check TF is broadcasting (vehicle should be moving)
 ros2 run tf2_ros tf2_echo ned base_link
+ros2 run tf2_ros tf2_monitor ned base_link
 ```
+
+Expected: ~10 Hz, single publisher (`vehicle_sim_server`).
 
 ## Nodes
 
 | Node | Description |
 |------|-------------|
-| `drift_service` | Propagates vehicle at constant velocity, exposes pause/resume services |
-| `dubins_pose_to_pose_action_server` | Plans and executes Dubins paths to goal poses |
-| `dubins_pose_to_pose_action_client` | Sends a parameterized goal to the action server |
+| `dubins_pose_to_pose_action_server` | Plans and executes Dubins paths to goal poses; sole owner of `ned→base_link` TF |
 
 ## Interfaces
 
 | Name | Type | Description |
 |------|------|-------------|
 | `pose_to_pose` | Action (`PoseToPose`) | Navigate to a goal pose |
-| `pause_drift` | Service (`PauseDrift`) | Stop drift, return current state |
-| `resume_drift` | Service (`ResumeDrift`) | Resume drift from given state |
 
 ## Parameters
 
-| Parameter | Default | Used by | Description |
-|-----------|---------|---------|-------------|
-| `frame_id` | `ned` | Both | TF parent frame |
-| `time_step` | `0.1` | Both | Simulation dt (seconds) |
-| `drift_velocity` | `0.25` | Drift service | Idle drift speed (m/s) |
-| `constant_velocity` | `0.5` | Action server | Navigation speed for Dubins paths (m/s) |
-| `log_level` | `info` | All Python nodes | ROS log level (debug/info/warn/error/fatal) applied to drift_service, vehicle_sim_server, meshes_rviz, depth_publisher |
+### Launch-controlled (set via launch file or command line)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `frame_id` | `ned` | TF parent frame for `base_link` |
+| `time_step` | `0.1` | Simulation dt (seconds) |
+| `constant_velocity` | `0.5` | Navigation speed along Dubins paths (m/s) |
+| `drift_velocity` | `0.25` | Idle drift speed between goals (m/s) |
+| `log_level` | `info` | ROS log level for all Python nodes (debug/info/warn/error/fatal) |
+
+### Hardcoded vehicle dynamics (in `execute_cb`)
+
+These govern the `SimpleVehicleModel` and `DubinsAirplanePath` and require a code change to tune.
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `turn_radius_m` | `0.5` | Minimum Dubins turn radius (m); also used by the planner |
+| `look_ahead_dist` | `1.0` | LOS follower look-ahead distance (m); affects path tracking tightness |
+| `speed_time_constant` | `2.0` | First-order lag on surge speed response |
+| `yaw_time_constant` | `0.2` | First-order lag on yaw response |
+| `pitch_time_constant` | `1.5` | First-order lag on pitch response |
+| `max_acceleration_mps2` | `1.0` | Surge acceleration limit (m/s²) |
+| `max_pitch_deg` | `15.0` | Pitch angle limit (degrees); also used by the planner |
+| `pitch_proportional_gain` | `0.5` | Proportional gain for depth/pitch control |
+| `roll_ratio` | `0.2` | Roll coupling ratio during turns |
 
 ### Log level usage
 
