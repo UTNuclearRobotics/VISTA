@@ -26,8 +26,6 @@ setup(
     entry_points={
         'console_scripts': [
             'dubins_pose_to_pose_action_server = vista_sim.dubins_pose_to_pose_action_server:main',
-            'dubins_pose_to_pose_action_client = vista_sim.dubins_pose_to_pose_action_client:main',
-            'drift_service = vista_sim.drift_service:main',
         ],
     },
 )

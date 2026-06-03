@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Generate a 200x200m procedural seabed mesh as an OBJ file."""
+"""Generate a 50x50 procedural seabed mesh as an OBJ file."""
 
 import os
 import numpy as np
 
 # ── Parameters ────────────────────────────────────────────────────────────────
-SIZE        = 200       # metres (square)
+SIZE        = 50       # metres (square)
 RESOLUTION  = 1.0       # metres between vertices
 AMPLITUDE   = 2.5       # metres, gentle rolling relief
 NUM_HILLS   = 6         # scattered mounds and depressions
 HILL_SIGMA  = 28.0      # metres, wide/fat for rolling character
 ROUGHNESS   = 0.25      # metres, small-scale seabed texture
 SEED        = 42
-OUTPUT      = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seabed_200x200m.obj")
+OUTPUT      = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seabed_50x50m.obj")
 # ──────────────────────────────────────────────────────────────────────────────
 
 rng = np.random.default_rng(SEED)
@@ -29,6 +29,10 @@ for _ in range(NUM_HILLS):
     cy = rng.uniform(20, SIZE - 20)
     a  = rng.uniform(0.5, 1.0) * AMPLITUDE * rng.choice([-1, 1])
     zz += a * np.exp(-((xx - cx)**2 + (yy - cy)**2) / (2 * HILL_SIGMA**2))
+
+# Deterministic divot at cluster site — shallow depression to suggest
+# a natural debris-collection hollow where lobster pots would settle
+zz += -1.5 * np.exp(-((xx - 25)**2 + (yy - 25)**2) / (2 * 4.0**2))
 
 # Small-scale roughness via summed sine waves
 for _ in range(20):

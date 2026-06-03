@@ -72,7 +72,7 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             name='map_to_ned_static',
-            arguments=['--x', '10', '--y', '10', '--z', '10', '--yaw', '1.57079632679', '--pitch', '0', '--roll', '3.14159265359', '--frame-id', 'map', '--child-frame-id', 'ned'],
+            arguments=['--x', '0', '--y', '0', '--z', '10', '--yaw', '1.57079632679', '--pitch', '0', '--roll', '3.14159265359', '--frame-id', 'map', '--child-frame-id', 'ned'],
         ),
 
         # Robot State Publisher 
@@ -84,25 +84,12 @@ def generate_launch_description():
             ]
         ),
 
-        # Drift service — propagates vehicle at idle drift velocity,
-        # exposes pause_drift / resume_drift services for action server handoff
-        Node(
-            package='vista_sim',
-            executable='drift_service',
-            name='drift_service',
-            output='screen',
-            parameters=[
-                {
-                    'frame_id': 'ned',
-                    'time_step': time_step,
-                    'constant_velocity': drift_velocity,
-                }
-            ],
-            arguments=['--ros-args', '--log-level', log_level],
-        ),
-
-        # Action server — plans and follows Dubins paths at navigation velocity,
-        # pauses drift on goal receipt, resumes drift on completion
+        # Vehicle action server — plans and follows Dubins paths at navigation
+        # velocity, and is the SOLE owner of base_link: it broadcasts the
+        # transform during a goal and propagates idle drift (drift_velocity)
+        # between goals. Replaces the former separate drift_service +
+        # pause/resume handshake, which broadcast base_link from two nodes at
+        # once (~20 Hz) and produced the teleport flicker.
         Node(
             package='vista_sim',
             executable='dubins_pose_to_pose_action_server',
@@ -113,6 +100,7 @@ def generate_launch_description():
                     'frame_id': 'ned',
                     'time_step': time_step,
                     'constant_velocity': constant_velocity,
+                    'drift_velocity': drift_velocity,
                 }
             ],
             arguments=['--ros-args', '--log-level', log_level],

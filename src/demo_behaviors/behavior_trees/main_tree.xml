@@ -2,10 +2,9 @@
     <BehaviorTree ID="MainTree">
       <Sequence>
 
-        <!-- Vehicle Sim (drift + Dubins navigation) -->
+        <!-- Vehicle Sim (Dubins navigation; the server now owns idle drift +
+             base_link internally, so there are no pause/resume drift services) -->
         <CheckForServers timeout="10" servers="
-            /pause_drift
-            /resume_drift
             /pose_to_pose/_action/send_goal"/>
 
         <!-- Viewpoint Sampler -->

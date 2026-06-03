@@ -1,0 +1,23 @@
+depth_publisher:
+  ros__parameters:
+    box_count: 4
+    box_size: [1.0, 1.0, 0.5]
+    box_positions:
+      box_0: [23.0, 25.0, -1.815]
+      box_1: [25.0, 27.0, -1.748]
+      box_2: [27.0, 25.0, -1.615]
+      box_3: [40.0, 40.0, -1.101]
+    terrain:
+      file_path: assets/seabed_50x50m.obj
+
+meshes_rviz:
+  ros__parameters:
+    box_count: 4
+    box_size: [1.0, 1.0, 0.5]
+    box_positions:
+      box_0: [23.0, 25.0, -1.815]
+      box_1: [25.0, 27.0, -1.748]
+      box_2: [27.0, 25.0, -1.615]
+      box_3: [40.0, 40.0, -1.101]
+    terrain:
+      file_path: assets/seabed_50x50m.obj

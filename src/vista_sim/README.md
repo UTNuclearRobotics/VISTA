@@ -61,8 +61,7 @@ ros2 run tf2_ros tf2_echo ned base_link
 
 | Node | Description |
 |------|-------------|
-| `drift_service` | Propagates vehicle at constant velocity, exposes pause/resume services |
-| `dubins_pose_to_pose_action_server` | Plans and executes Dubins paths to goal poses |
+| `dubins_pose_to_pose_action_server` | Plans and executes Dubins paths to goal poses; sole owner of `ned→base_link` TF |
 | `dubins_pose_to_pose_action_client` | Sends a parameterized goal to the action server |
 
 ## Interfaces
@@ -70,18 +69,34 @@ ros2 run tf2_ros tf2_echo ned base_link
 | Name | Type | Description |
 |------|------|-------------|
 | `pose_to_pose` | Action (`PoseToPose`) | Navigate to a goal pose |
-| `pause_drift` | Service (`PauseDrift`) | Stop drift, return current state |
-| `resume_drift` | Service (`ResumeDrift`) | Resume drift from given state |
 
 ## Parameters
 
-| Parameter | Default | Used by | Description |
-|-----------|---------|---------|-------------|
-| `frame_id` | `ned` | Both | TF parent frame |
-| `time_step` | `0.1` | Both | Simulation dt (seconds) |
-| `drift_velocity` | `0.25` | Drift service | Idle drift speed (m/s) |
-| `constant_velocity` | `0.5` | Action server | Navigation speed for Dubins paths (m/s) |
-| `log_level` | `info` | All Python nodes | ROS log level (debug/info/warn/error/fatal) applied to drift_service, vehicle_sim_server, meshes_rviz, depth_publisher |
+### Launch-controlled (set via launch file or command line)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `frame_id` | `ned` | TF parent frame for `base_link` |
+| `time_step` | `0.1` | Simulation dt (seconds) |
+| `constant_velocity` | `0.5` | Navigation speed along Dubins paths (m/s) |
+| `drift_velocity` | `0.25` | Idle drift speed between goals (m/s) |
+| `log_level` | `info` | ROS log level for all Python nodes (debug/info/warn/error/fatal) |
+
+### Hardcoded vehicle dynamics (in `execute_cb`)
+
+These govern the `SimpleVehicleModel` and `DubinsAirplanePath` and require a code change to tune.
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `turn_radius_m` | `0.5` | Minimum Dubins turn radius (m); also used by the planner |
+| `look_ahead_dist` | `1.0` | LOS follower look-ahead distance (m); affects path tracking tightness |
+| `speed_time_constant` | `2.0` | First-order lag on surge speed response |
+| `yaw_time_constant` | `0.2` | First-order lag on yaw response |
+| `pitch_time_constant` | `1.5` | First-order lag on pitch response |
+| `max_acceleration_mps2` | `1.0` | Surge acceleration limit (m/s²) |
+| `max_pitch_deg` | `15.0` | Pitch angle limit (degrees); also used by the planner |
+| `pitch_proportional_gain` | `0.5` | Proportional gain for depth/pitch control |
+| `roll_ratio` | `0.2` | Roll coupling ratio during turns |
 
 ### Log level usage
 
