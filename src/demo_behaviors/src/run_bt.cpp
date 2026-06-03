@@ -14,6 +14,8 @@
 #include "demo_behaviors/behaviors/sample_view_poses_helix.hpp"
 #include "demo_behaviors/behaviors/dubins_client.hpp"
 #include "demo_behaviors/behaviors/mark_target_complete.hpp"
+#include "demo_behaviors/behaviors/get_next_search_pose.hpp"
+#include "demo_behaviors/behaviors/is_within_time_limit.hpp"
 
 // Sample NBV behaviors (nbv_behaviors package - the sample_nbv_behaviors directory)
 // Each behavior creates its own internal node; no shared node arg needed at registration.
@@ -73,6 +75,8 @@ int main(int argc, char **argv)
   factory.registerNodeType<SampleViewPosesHelix>("SampleViewPosesHelix", node);
   factory.registerNodeType<DubinsClient>("DubinsClient", node);
   factory.registerNodeType<MarkTargetComplete>("MarkTargetComplete");
+  factory.registerNodeType<GetNextSearchPose>("GetNextSearchPose", node);
+  factory.registerNodeType<isWithinTimeLimit>("isWithinTimeLimit", node);
 
   // Sample NBV behaviors - each owns an internal node + uses spin_until_future_complete.
   // Different threading model from our shared-node behaviors, but coexists fine.
@@ -99,6 +103,7 @@ int main(int argc, char **argv)
   std::string share_path = ament_index_cpp::get_package_share_directory(
     "demo_behaviors");
   factory.registerBehaviorTreeFromFile(share_path + "/behavior_trees/nbv_on_target.xml");
+  factory.registerBehaviorTreeFromFile(share_path + "/behavior_trees/bayesian_search.xml");
   factory.registerBehaviorTreeFromFile(share_path + "/behavior_trees/main_tree.xml");
 
   // ---- Write Behaviors into TreeNodes Model ---- //

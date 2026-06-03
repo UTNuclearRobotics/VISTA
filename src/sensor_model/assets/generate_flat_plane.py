@@ -39,13 +39,13 @@ def create_grid_mesh(width=200, height=200, step=1):
     return mesh
 
 # Example usage
-terrain = create_grid_mesh(200, 200, 1)
+terrain = create_grid_mesh(50, 50, 1)
 
 print(f"Vertices: {len(terrain.vertices)}")
 print(f"Triangles: {len(terrain.triangles)}")
 print(f"Bounds: {terrain.get_min_bound()} -> {terrain.get_max_bound()}")
 
-o3d.io.write_triangle_mesh("flatPlane_200x200m_80kTriangles.obj", terrain)
-print("Saved flatPlane_200x200m_80kTriangles.obj")
+o3d.io.write_triangle_mesh("flatPlane_50x50m.obj", terrain)
+print("Saved flatPlane_50x50m.obj")
 
 o3d.visualization.draw_geometries([terrain])

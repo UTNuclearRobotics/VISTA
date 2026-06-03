@@ -170,17 +170,23 @@ BT::NodeStatus DubinsClient::onRunning(){
 }
 
 void DubinsClient::onHalted() {
-    // BT was interrupted mid-execution (rare for our tree, but defensive)
-    // Cancel the goal so the server actually stops the vehicle
+    // BT was interrupted mid-execution. Cancel the goal so the server stops the vehicle.
     if (goal_handle_) {
+        // phase 2: we have the handle, cancel it directly
         RCLCPP_INFO(node_->get_logger(), "DubinsClient halted, cancelling goal");
         dubins_client_->async_cancel_goal(goal_handle_);
+    } else if (goal_handle_future_.has_value()) {
+        // phase 1: goal was sent but not yet accepted, so we have no handle to
+        // cancel. Cancel all goals from this client to avoid an orphaned goal
+        // that keeps running (and blocks the next goal under the server's
+        // MutuallyExclusiveCallbackGroup).
+        RCLCPP_INFO(node_->get_logger(), "DubinsClient halted in phase 1, cancelling pending goal");
+        dubins_client_->async_cancel_all_goals();
     }
 
     // Reset all state so the next onStart starts fresh
     goal_handle_.reset();
     goal_handle_future_ = std::nullopt;
     result_future_ = std::nullopt;
-
 }
 

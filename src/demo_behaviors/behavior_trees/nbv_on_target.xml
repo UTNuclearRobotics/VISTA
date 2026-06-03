@@ -32,7 +32,7 @@
             <!-- NBV loop: repeat while not saturated -->
             <RepeatWhile>
                 <Inverter>
-                    <CheckScoreSaturation threshold="0.01" fractional_scores="{scores}"/>
+                    <CheckScoreSaturation threshold="0.0001" fractional_scores="{scores}"/>
                 </Inverter>
                 <Sequence>
                     <!-- Select highest-scored viewpoint, remove from candidate list -->

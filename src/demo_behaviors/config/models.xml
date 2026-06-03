@@ -47,6 +47,7 @@
             <input_port name="return_pointcloud" type="bool"/>
         </Action>
         <Action ID="DetectAndSortQueue">
+            <output_port name="visited_ID_write" type="std::unordered_map&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::hash&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, std::equal_to&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, std::allocator&lt;std::pair&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; const, geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt; &gt;"/>
             <input_port name="completed_ID_read" type="std::string"/>
             <output_port name="geoID_write" type="std::vector&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::allocator&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt;"/>
         </Action>
@@ -153,6 +154,10 @@
             <output_port name="multi_dof_joint_state" type="std::shared_ptr&lt;sensor_msgs::msg::MultiDOFJointState_&lt;std::allocator&lt;void&gt; &gt; &gt;">The solution joint state for any multi-dof joints in the robot</output_port>
             <input_port name="timeout" type="float" default="1.000000">How long to wait for the request to return in seconds</input_port>
             <input_port name="moveit_namespace" type="std::string">The namespace of the move_group node</input_port>
+        </Action>
+        <Action ID="GetNextSearchPose">
+            <output_port name="planning_pose_write" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="visited_ID_read" type="std::unordered_map&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::hash&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, std::equal_to&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, std::allocator&lt;std::pair&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; const, geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt; &gt;"/>
         </Action>
         <Action ID="GetROSParameter">
             <output_port name="value" type="BT::AnyTypeAllowed">The blackboard value to set with the value of the ROS parameter</output_port>
@@ -301,6 +306,9 @@
             <output_port name="target_pose_write" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
             <output_port name="current_ID_write" type="std::string"/>
             <input_port name="geoID_read" type="std::vector&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;, std::allocator&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt; &gt;"/>
+        </Action>
+        <Action ID="isWithinTimeLimit">
+            <input_port name="hours" type="double">Mission time budget in hours</input_port>
         </Action>
     </TreeNodesModel>
 </root>

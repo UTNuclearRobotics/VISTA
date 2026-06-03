@@ -1,0 +1,25 @@
+<root BTCPP_format="4">
+    <BehaviorTree ID="BayesianSearch">
+        <!-- Repeat(-1): each search step (get pose -> navigate) succeeds, but we
+             convert that success to RUNNING so it never upticks the outer
+             lobster-pot Repeat. The subtree only exits via:
+               - external halt (queue populated -> ReactiveFallback switches to NBV)
+               - external halt (mission TimeLimit expires)
+               - GetNextSearchPose FAILURE (search service down) -->
+        <Repeat num_cycles="-1">
+            <Sequence>
+                <!-- Query the Bayesian map for the next waypoint. Passes the
+                     completed-target set so the server can apply cluster bumps.
+                     Returns an NED PoseStamped (north-facing, offset for FLS tilt). -->
+                <GetNextSearchPose
+                    visited_ID_read="{visited_targets}"
+                    planning_pose_write="{search_pose}"/>
+                <!-- ForceSuccess: an unreachable cell shouldn't break the loop;
+                     just move on to the next argmax pick. -->
+                <ForceSuccess>
+                    <DubinsClient planning_pose="{search_pose}" timeout_sec="300"/>
+                </ForceSuccess>
+            </Sequence>
+        </Repeat>
+    </BehaviorTree>
+</root>

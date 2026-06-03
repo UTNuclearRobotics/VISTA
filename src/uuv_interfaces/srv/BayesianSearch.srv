@@ -1,0 +1,13 @@
+# Request: completed inspection targets (geometry ID carried in each pose's
+# header.frame_id). The server applies a cluster bump at each new target's
+# location to bias the search toward likely neighbors.
+geometry_msgs/PoseStamped[] visited_targets
+---
+# Response: next waypoint to navigate to, in NED frame, north-facing, offset
+# back along north so the forward-tilted FLS center beam intersects the cell.
+geometry_msgs/PoseStamped next_pose
+# Utility score of the returned cell (for logging / analysis plots).
+float64 cell_utility
+# True once all cells have been swept (informational; the search keeps
+# hovering/revisiting and only terminates on the mission TimeLimit).
+bool search_exhausted

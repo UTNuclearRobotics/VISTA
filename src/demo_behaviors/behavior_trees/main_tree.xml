@@ -17,23 +17,31 @@
             /next_best_view_server/set_views
             /next_best_view_server/conclude_policy"/>
 
+        <!-- Bayesian Search -->
+        <CheckForServers timeout="10" servers="/bayesian_search_server/get_next_search_pose"/>
+
         <Repeat num_cycles = "4">
             <Parallel success_count="1" failure_count="1">
                 <Repeat num_cycles = "-1">
-                    <DetectAndSortQueue geoID_write="{queue}" completed_ID_read="{completed_id}"/>
+                    <DetectAndSortQueue geoID_write="{queue}" completed_ID_read="{completed_id}" visited_ID_write= "{visited_targets}"/>
                 </Repeat>
                 <ReactiveFallback>
-                    <!-- RetryUntilSuccessful is a placeholder so the BT doesn't die when the
-                         queue is empty. Replace with BayesianSearch as the second ReactiveFallback
-                         child, then drop this wrapper. -->
-                    <RetryUntilSuccessful num_attempts="-1">
-                        <Sequence>
-                            <isQueueNotEmpty geoID_read="{queue}" current_ID_write="{current_ID}" target_pose_write = "{current_pose}"/>
-                            <!-- _autoremap="true": share all blackboard entries with the subtree  -->
-                            <SubTree ID="NBVOnTarget" _autoremap="true"/>
-                        </Sequence>
-                    </RetryUntilSuccessful>
-                    <!-- TODO: ReactiveSequence → isWithinTimeLimit → BayesianSearch sub-tree -->
+                    <!-- Inspection branch: if the queue has a target, run NBV on it.
+                         ReactiveFallback re-ticks isQueueNotEmpty every tick, so a
+                         detection mid-search preempts search and switches here. -->
+                    <Sequence>
+                        <isQueueNotEmpty geoID_read="{queue}" current_ID_write="{current_ID}" target_pose_write = "{current_pose}"/>
+                        <!-- _autoremap="true": share all blackboard entries with the subtree  -->
+                        <SubTree ID="NBVOnTarget" _autoremap="true"/>
+                    </Sequence>
+                    <!-- Search branch: when the queue is empty, drive the Bayesian
+                         search loop, guarded by the mission time budget. The
+                         ReactiveSequence re-ticks isWithinTimeLimit every tick, so
+                         the search ends the moment the budget is exceeded. -->
+                    <ReactiveSequence>
+                        <isWithinTimeLimit hours="2"/>
+                        <SubTree ID="BayesianSearch" _autoremap="true"/>
+                    </ReactiveSequence>
                 </ReactiveFallback>
             </Parallel>
         </Repeat>

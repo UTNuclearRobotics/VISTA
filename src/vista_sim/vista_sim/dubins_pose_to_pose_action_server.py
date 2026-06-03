@@ -51,7 +51,6 @@ class VehiclePoseActionServer(Node):
         # Vehicle state — always valid, never None
         self._eta = Eta(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self._nu = Nu(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        self._cancel_requested = False
 
         # TF Broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
@@ -89,8 +88,9 @@ class VehiclePoseActionServer(Node):
         return GoalResponse.ACCEPT
 
     def cancel_cb(self, cancel_request):
+        # Just accept; cancellation is tracked per-goal via goal_handle.is_cancel_requested
+        # (set by rclpy's action machinery, independent of this callback group's timing).
         self.get_logger().info("Cancel accepted – halting navigation.")
-        self._cancel_requested = True
         return CancelResponse.ACCEPT
 
     # ------------------------------------------------------------------
@@ -217,8 +217,7 @@ class VehiclePoseActionServer(Node):
 
         # --- Follow path ---
         while True:
-            if self._cancel_requested:
-                self._cancel_requested = False
+            if goal_handle.is_cancel_requested:
                 self._eta, self._nu = eta, nu
                 goal_handle.canceled()
                 self.get_logger().info("Goal canceled.")

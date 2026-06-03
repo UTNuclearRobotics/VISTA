@@ -28,7 +28,10 @@ BT::PortsList DetectAndSortQueue::providedPorts()
 {
     return { BT::OutputPort<std::vector<PoseStamped>>("geoID_write"),
             //default empty entry.
-             BT::InputPort<std::string>("completed_ID_read")};
+             BT::InputPort<std::string>("completed_ID_read"),
+            // completed targets (id -> pose) for the Bayesian search server
+            // to apply cluster bumps at their locations
+             BT::OutputPort<std::unordered_map<std::string, PoseStamped>>("visited_ID_write")};
 }
 
 BT::NodeStatus DetectAndSortQueue::tick()
@@ -140,6 +143,10 @@ BT::NodeStatus DetectAndSortQueue::tick()
 
     // always publish so blackboard reflects removals even when no new message arrived
     setOutput("geoID_write", queue_);
+
+    // publish the completed-target map for the Bayesian search server
+    setOutput("visited_ID_write", visited_hashmap_);
+
     return BT::NodeStatus::SUCCESS;
 
 

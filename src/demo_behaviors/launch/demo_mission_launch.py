@@ -98,6 +98,16 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', log_level],
     )
 
+    # Bayesian search server (probability map + next-waypoint service for the
+    # search subtree). Resolves FLS geometry from the map->ned TF at startup.
+    bayesian_search_server = Node(
+        package='bayesian_search',
+        executable='bayesian_search_server',
+        name='bayesian_search_server',
+        output='screen',
+        arguments=['--ros-args', '--log-level', log_level],
+    )
+
     # Behavior tree runner - MainTree's CheckForServers gates startup,
     # so no launch-side delay is needed
     bt_runner = Node(
@@ -132,6 +142,7 @@ def generate_launch_description():
         vista_sim_include,
         helix_service,
         nbv_server,
+        bayesian_search_server,
         bt_runner,
         # debugging GUIs
         rqt_console,

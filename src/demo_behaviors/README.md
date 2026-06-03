@@ -50,17 +50,17 @@ This starts:
 - `vista_sim` (simulator, Dubins action server, sensor publisher, drift service, RViz, static TFs)
 - `helix_service` (Python service from helix_generator)
 - `next_best_view_server` (from nbv_cpp, configured via `sensor_model/config/nbv_params.yaml`)
-- `run_bt` (behavior tree runner, delayed by `bt_start_delay` seconds)
+- `bayesian_search_server` (probability map + next-waypoint service for the search subtree)
+- `run_bt` (behavior tree runner; `MainTree`'s `CheckForServers` gates startup, so no launch-side delay is needed)
 - `rqt_console` (filterable log viewer for all nodes) and `rqt_graph` (node/topic topology)
 
 ### Example: override launch parameters
 
 ```bash
-# Slower drift, faster nav, longer BT startup buffer, no RViz
+# Slower drift, faster nav, no RViz
 ros2 launch demo_behaviors demo_mission_launch.py \
     drift_velocity:=0.1 \
     constant_velocity:=0.8 \
-    bt_start_delay:=5.0 \
     start_rviz:=false
 ```
 
@@ -93,7 +93,6 @@ All parameters are declared in [launch/demo_mission_launch.py](launch/demo_missi
 | `drift_velocity` | `0.25` | Idle drift velocity when not navigating (m/s) |
 | `constant_velocity` | `0.5` | Navigation velocity for Dubins paths (m/s) |
 | `time_step` | `0.1` | Simulation time step (s) |
-| `bt_start_delay` | `3.0` | Seconds to wait before BT starts (lets servers come up) |
 | `log_level` | `info` | ROS log level (debug/info/warn/error/fatal) applied to demo_bt, helix_service, nbv_server, and all vista_sim Python nodes |
 
 ### Log level modes

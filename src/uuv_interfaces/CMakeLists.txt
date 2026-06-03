@@ -21,6 +21,7 @@ set(srv_files
   "srv/PauseDrift.srv"
   "srv/ResumeDrift.srv"
   "srv/GenerateHelix.srv"
+  "srv/BayesianSearch.srv"
 )
 
 # Generate interfaces
