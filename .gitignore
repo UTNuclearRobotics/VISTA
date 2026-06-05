@@ -36,3 +36,4 @@ venv/
 .venv/
 src/nbv_cpp/
 src/perception_open3d/
+.claude/

@@ -19,6 +19,9 @@ class RayCastingCore:
         
         # key is geometry ID, value is centroid coordinates array
         self.box_geometryID_hashmap = {}
+        
+        # hardcoding this in at the request of ARL:UT
+        self.max_depth = 100 
 
     @classmethod
     def from_config(cls, config: dict):
@@ -105,7 +108,7 @@ class RayCastingCore:
         #in the future create a boolean mask based on minimum and max distances
         # introduce gaussian noise if needed
         
-        valid_dists = dists.isfinite()
+        valid_dists = (dists.isfinite()) & (dists <= self.max_depth)
         dists[valid_dists.logical_not()] = 0.0
         dists = dists.numpy().flatten()  # numpy (H*W,)
         rays = self.rays.numpy().reshape(-1, 6)  # numpy copy (H*W, 6)
@@ -133,7 +136,8 @@ class RayCastingCore:
         
         #process geometry_ids
         
-        #remove non hit IDs
+        #remove non hit IDs and any IDs out of bounds (this is already a flattened array)
+        hit_ids = hit_ids[dists > 0.0]
         hit_ids = hit_ids[hit_ids != 0xFFFFFFFF]
         
         #only provide IDs present in the hashmap keys

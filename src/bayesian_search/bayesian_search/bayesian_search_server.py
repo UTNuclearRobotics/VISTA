@@ -62,9 +62,6 @@ class BayesianSearchServer(Node):
         self.prior_sigma: float = 8.0              # m
         # cluster bump sigma/amplitude are passed as keyword args to gaussian_bump
         # at the call site (readability), not stored as members.
-        self.fov_horizontal: float = np.deg2rad(120.0)
-        self.fov_vertical: float = np.deg2rad(30.0)
-        self.fls_max_range: float = 15.0
 
         # ---- FLS viewing geometry (for the returned search pose) ----
         # In NED (+down): the vehicle holds search_depth; the seafloor depth is

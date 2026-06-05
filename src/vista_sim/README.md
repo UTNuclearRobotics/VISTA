@@ -61,10 +61,7 @@ Expected: ~10 Hz, single publisher (`vehicle_sim_server`).
 | Node | Description |
 |------|-------------|
 | `dubins_pose_to_pose_action_server` | Plans and executes Dubins paths to goal poses; sole owner of `ned→base_link` TF |
-<<<<<<< HEAD
-=======
 | `dubins_pose_to_pose_action_client` | Sends a parameterized goal to the action server |
->>>>>>> 06bc889fddc8f1418d2771b78d6614e29308a2cd
 
 ## Interfaces
 

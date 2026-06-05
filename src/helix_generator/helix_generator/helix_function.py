@@ -73,7 +73,17 @@ def generate_helix(
         # now create starting pose, which we refer to as having R_0 and t_0
         # to show parameterization, we will index theta_vec
         
-        t_0= np.array([r*np.cos(theta_vec[0]), r*np.sin(theta_vec[0]), helix_height + clearance -(h_max/(2*np.pi) * theta_vec[0])]) # 3 x 1
+        theta_0 = theta_vec[0]
+        t_0= np.array([r*np.cos(theta_0), r*np.sin(theta_0), helix_height + clearance -(h_max/(2*np.pi) * theta_0)]) # 3 x 1
+
+        # Mount-angle offset: shift the pose backward along the pre-mount optical
+        # axis (the unit horizontal tangent h_hat) so the down-tilted FLS beam
+        # still lands on the radius-r ground circle. offset = z / tan(mount_angle),
+        # using the pose's world height (roi base at z=0). Applied before the mount
+        # rotation so the shift stays horizontal and the height is preserved.
+        h_hat_0 = np.array([-np.sin(theta_0), np.cos(theta_0), 0.0])
+        t_0 = t_0 - (t_0[2] / np.tan(mount_angle)) * h_hat_0
+
         R_0= Rotation.from_matrix(np.array([[1,0,0],[0,0,-1],[0,1,0]]).T)
 
 
@@ -100,6 +110,12 @@ def generate_helix(
         for theta in theta_vec[1:]:
             pose_i = Pose()
             t_i= np.array([r*np.cos(theta), r*np.sin(theta), helix_height + clearance -(h_max/(2*np.pi) * theta)]) # 3 x 1
+
+            # Same mount-angle offset as the seed pose: backward along the unit
+            # horizontal tangent by z / tan(mount_angle), before the mount rotation.
+            h_hat = np.array([-np.sin(theta), np.cos(theta), 0.0])
+            t_i = t_i - (t_i[2] / np.tan(mount_angle)) * h_hat
+
             R_theta = Rotation.from_euler('z', theta)
             
             R_i = R_theta * R_0
@@ -121,14 +137,14 @@ def generate_helix(
 if __name__ == "__main__":
     # Test with params from nbv_on_target.xml
     pose_array = generate_helix(
-        r_min=2.0,
+        r_min=5.0,
         radius_multiplier=3.0,
         num_shells=3,
         helix_height=20.0,
-        clearance=2.0,
+        clearance=15.0,
         psi_max_deg=15.0,
         delta_theta_deg=15.0,
-        mount_angle_deg=45.0
+        mount_angle_deg=20.0
     )
 
     # Extract positions for plotting
