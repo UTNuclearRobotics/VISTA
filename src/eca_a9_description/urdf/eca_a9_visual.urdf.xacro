@@ -2,6 +2,12 @@
 <robot name="eca_a9_visual" xmlns:xacro="http://ros.org/wiki/xacro">
 
 
+  <!-- FLS down-tilt from horizontal, in degrees. Single source of truth for the
+       physical mount angle. Keep this in sync with the helix sampler's
+       mount_angle_deg port (nbv_on_target.xml) and the search server's
+       mount_angle, since those re-aim viewpoints assuming this tilt. -->
+  <xacro:property name="fls_mount_angle_deg" value="20"/>
+
   <!-- Mesh properties -->
   <xacro:property name="visual_mesh"    value="package://eca_a9_description/mesh/eca_a9.dae"/>
   <!-- Use STL for collision if available; fallback to DAE by changing below -->
@@ -31,8 +37,9 @@
   <joint name="base_to_sonar" type="fixed">
     <parent link="base_link"/>
     <child link="sonar"/>
-    <!-- Mount at bow (0.7m forward), angled down 45 degrees -->
-    <origin xyz="0.7 0 0" rpy="0 -0.7854 0"/>
+    <!-- Mount at bow (0.7m forward), angled down by fls_mount_angle_deg.
+         Negative pitch tilts the sonar's forward (+X) axis downward. -->
+    <origin xyz="0.7 0 0" rpy="0 ${radians(-fls_mount_angle_deg)} 0"/>
   </joint>
 
   <link name="sonar">

@@ -44,10 +44,16 @@ class VehiclePoseActionServer(Node):
         self.declare_parameter("time_step", 0.1)
         self.declare_parameter("constant_velocity", 0.5)
         self.declare_parameter("drift_velocity", 0.25)
+        self.declare_parameter("turn_radius_m", 5.0)
+        self.declare_parameter("max_pitch_deg", 15.0)
         self.frame_id = self.get_parameter("frame_id").value
         self.dt = self.get_parameter("time_step").value
         self.constant_velocity = self.get_parameter("constant_velocity").value
         self._drift_velocity = self.get_parameter("drift_velocity").value
+        
+        # Vehicle's minimum turn radius and max pitch.
+        self.turn_radius_m = self.get_parameter("turn_radius_m").value
+        self.max_pitch_deg = self.get_parameter("max_pitch_deg").value
 
         # Vehicle state — always valid, never None. This node is the SOLE owner
         # of the ned->base_link transform. execute_cb broadcasts during a goal;
@@ -205,7 +211,12 @@ class VehiclePoseActionServer(Node):
 
 
         # --- Plan path once ---
-        planner = DubinsAirplanePath(turn_radius=0.5, max_pitch_deg=15.0)
+        # Plan 20% looser than the vehicle's minimum turn radius so tracking has
+        # yaw-rate headroom to correct cross-track error instead of saturating
+        # (mirrors simple_vehicle_sim_v3.py).
+        planner = DubinsAirplanePath(
+            turn_radius=1.2 * self.turn_radius_m, max_pitch_deg=self.max_pitch_deg
+        )
         waypoints = planner.get_poses(eta, goal_eta, waypoint_spacing=1.0)
         self.get_logger().info(f"Planned Dubins path with {len(waypoints)} waypoints.")
 
@@ -215,10 +226,10 @@ class VehiclePoseActionServer(Node):
                 "yaw_time_constant": 0.2,
                 "pitch_time_constant": 1.5,
                 "roll_ratio": 0.2,
-                "turn_radius_m": 0.5,
+                "turn_radius_m": self.turn_radius_m,
                 "max_acceleration_mps2": 1.0,
                 "max_speed_mps": self.constant_velocity,
-                "max_pitch_deg": 15.0,
+                "max_pitch_deg": self.max_pitch_deg,
                 "pitch_proportional_gain": 0.5,
                 "look_ahead_dist": 1.0,
                 "nominal_speed": self.constant_velocity,
@@ -271,7 +282,7 @@ class VehiclePoseActionServer(Node):
             goal_handle.publish_feedback(feedback)
 
             # Nominal success: within position and heading thresholds.
-            reached = dist < 1.0 and yaw_err < 0.3
+            reached = dist < 3.0 and yaw_err < 0.3
 
             # Miss detection: path fully consumed (closest waypoint is the last one) and
             # the vehicle is receding from its closest approach. Using path position rather

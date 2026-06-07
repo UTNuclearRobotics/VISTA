@@ -70,7 +70,7 @@ class BayesianSearchServer(Node):
         # vehicle sits x_adjustment = clearance / tan(mount_angle) behind (north of)
         # the cell so the centre beam lands on it. Search poses are north-facing.
         self.search_depth: float = 5.0              # NED depth the vehicle holds (m)
-        self.mount_angle: float = np.deg2rad(45.0)  # FLS down-tilt from horizontal
+        self.mount_angle: float = np.deg2rad(20.0)  # FLS down-tilt from horizontal
         # Approximate-Dubins cost: distance + turning_radius * |yaw_diff|. The
         # turning_radius (m/rad) converts heading error into equivalent arc length;
         # set it to the Dubins planner's minimum turning radius.

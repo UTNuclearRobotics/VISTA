@@ -26,6 +26,9 @@ ros2 launch vista_sim vista_sim_launch.py start_rviz:=false
 
 # Override velocity and time step
 ros2 launch vista_sim vista_sim_launch.py drift_velocity:=0.1 constant_velocity:=1.0 time_step:=0.05
+
+# Override vehicle turn radius / max pitch (the planner stays feasible automatically)
+ros2 launch vista_sim vista_sim_launch.py turn_radius_m:=7.0 max_pitch_deg:=20.0
 ```
 
 The `environment` argument selects a config yaml from `sensor_model/config/` (omit the `.yaml` extension).
@@ -79,23 +82,25 @@ Expected: ~10 Hz, single publisher (`vehicle_sim_server`).
 | `time_step` | `0.1` | Simulation dt (seconds) |
 | `constant_velocity` | `0.5` | Navigation speed along Dubins paths (m/s) |
 | `drift_velocity` | `0.25` | Idle drift speed between goals (m/s) |
+| `turn_radius_m` | `5.0` | Vehicle minimum turn radius (m). The planner plans at **1.2×** this value so paths stay within the vehicle's yaw-rate limit and remain trackable (see note below). |
+| `max_pitch_deg` | `15.0` | Vehicle maximum pitch angle (deg); shared by the planner and the dynamics model |
 | `log_level` | `info` | ROS log level for all Python nodes (debug/info/warn/error/fatal) |
 
 ### Hardcoded vehicle dynamics (in `execute_cb`)
 
-These govern the `SimpleVehicleModel` and `DubinsAirplanePath` and require a code change to tune.
+These govern the `SimpleVehicleModel` and require a code change to tune. (`turn_radius_m` and `max_pitch_deg` were promoted to launch args — see the table above.)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `turn_radius_m` | `0.5` | Minimum Dubins turn radius (m); also used by the planner |
 | `look_ahead_dist` | `1.0` | LOS follower look-ahead distance (m); affects path tracking tightness |
 | `speed_time_constant` | `2.0` | First-order lag on surge speed response |
 | `yaw_time_constant` | `0.2` | First-order lag on yaw response |
 | `pitch_time_constant` | `1.5` | First-order lag on pitch response |
 | `max_acceleration_mps2` | `1.0` | Surge acceleration limit (m/s²) |
-| `max_pitch_deg` | `15.0` | Pitch angle limit (degrees); also used by the planner |
 | `pitch_proportional_gain` | `0.5` | Proportional gain for depth/pitch control |
 | `roll_ratio` | `0.2` | Roll coupling ratio during turns |
+
+**Planner / vehicle feasibility.** The vehicle's achievable turn rate is `ω_max = constant_velocity / turn_radius_m`. The Dubins planner is given a turn radius of `1.2 × turn_radius_m`. It plans paths ~20% gentler than the vehicle's hard limit. That headroom lets the LOS tracker spend yaw authority correcting cross-track error instead of saturating just to hold the nominal arc. Planning *at* the limit makes the tightest turns (especially the final heading alignment) untrackable, so the vehicle arrives off-heading and the goal is flagged as a miss. Both the planner radius and the vehicle's `turn_radius_m` derive from the single launch parameter, so they can never drift apart.
 
 ### Log level usage
 

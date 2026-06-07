@@ -22,6 +22,8 @@ def generate_launch_description():
     drift_velocity = LaunchConfiguration('drift_velocity')       # idle drift speed
     constant_velocity = LaunchConfiguration('constant_velocity')  # action server navigation speed
     time_step = LaunchConfiguration('time_step')
+    turn_radius_m = LaunchConfiguration('turn_radius_m')          # vehicle min turn radius
+    max_pitch_deg = LaunchConfiguration('max_pitch_deg')          # vehicle max pitch angle
     log_level = LaunchConfiguration('log_level')
     
     # RViz configuration
@@ -63,6 +65,16 @@ def generate_launch_description():
             description='Simulation time step in seconds'
         ),
         DeclareLaunchArgument(
+            'turn_radius_m',
+            default_value='5.0',
+            description='Vehicle minimum turn radius (m); the planner inflates this 20 percent so paths stay feasible'
+        ),
+        DeclareLaunchArgument(
+            'max_pitch_deg',
+            default_value='15.0',
+            description='Vehicle maximum pitch angle (deg) for planning and dynamics'
+        ),
+        DeclareLaunchArgument(
             'log_level', default_value='info',
             description='ROS log level for vista_sim Python nodes (debug, info, warn, error, fatal)'
         ),
@@ -101,6 +113,8 @@ def generate_launch_description():
                     'time_step': time_step,
                     'constant_velocity': constant_velocity,
                     'drift_velocity': drift_velocity,
+                    'turn_radius_m': turn_radius_m,
+                    'max_pitch_deg': max_pitch_deg,
                 }
             ],
             arguments=['--ros-args', '--log-level', log_level],

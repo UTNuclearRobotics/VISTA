@@ -15,14 +15,14 @@
 
             <!-- Sample candidate viewpoints on helix manifold around target (custom) -->
             <SampleViewPosesHelix
-                clearance_height="1"
-                helix_height="5"
-                min_radius="2.0"
+                clearance_height="5"
+                helix_height="10"
+                min_radius="5.0"
                 radius_multiplier="3"
                 num_shells="3"
                 delta_theta="30"
                 psi_max_deg="15"
-                mount_angle_deg="45"
+                mount_angle_deg="20"
                 view_poses="{poses}"
             />
 
