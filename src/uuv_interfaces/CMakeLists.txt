@@ -20,6 +20,7 @@ set(action_files
 set(srv_files
   "srv/GenerateHelix.srv"
   "srv/BayesianSearch.srv"
+  "srv/DubinsLengths.srv"
 )
 
 # Generate interfaces

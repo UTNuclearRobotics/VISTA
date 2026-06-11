@@ -13,6 +13,7 @@
 #include "demo_behaviors/behaviors/is_queue_not_empty.hpp"
 #include "demo_behaviors/behaviors/sample_view_poses_helix.hpp"
 #include "demo_behaviors/behaviors/dubins_client.hpp"
+#include "demo_behaviors/behaviors/path_length_client.hpp"
 #include "demo_behaviors/behaviors/mark_target_complete.hpp"
 #include "demo_behaviors/behaviors/get_next_search_pose.hpp"
 #include "demo_behaviors/behaviors/is_within_time_limit.hpp"
@@ -24,6 +25,7 @@
 #include "nbv_behaviors/set_views.hpp"
 #include "nbv_behaviors/check_score_saturation.hpp"
 #include "nbv_behaviors/get_best_view.hpp"
+#include "nbv_behaviors/get_best_view_with_cost.hpp"
 #include "nbv_behaviors/calculate_planning_pose.hpp"
 #include "nbv_behaviors/conclude_policy.hpp"
 
@@ -74,6 +76,7 @@ int main(int argc, char **argv)
   factory.registerNodeType<isQueueNotEmpty>("isQueueNotEmpty");
   factory.registerNodeType<SampleViewPosesHelix>("SampleViewPosesHelix", node);
   factory.registerNodeType<DubinsClient>("DubinsClient", node);
+  factory.registerNodeType<PathLengthClient>("PathLengthClient", node);
   factory.registerNodeType<MarkTargetComplete>("MarkTargetComplete");
   factory.registerNodeType<GetNextSearchPose>("GetNextSearchPose", node);
   factory.registerNodeType<isWithinTimeLimit>("isWithinTimeLimit", node);
@@ -85,6 +88,7 @@ int main(int argc, char **argv)
   factory.registerNodeType<nbv_behaviors::SetViews>("SetViews");
   factory.registerNodeType<nbv_behaviors::CheckScoreSaturation>("CheckScoreSaturation");
   factory.registerNodeType<nbv_behaviors::GetBestView>("GetBestView");
+  factory.registerNodeType<nbv_behaviors::GetBestViewWithCost>("GetBestViewWithCost");
   factory.registerNodeType<nbv_behaviors::CalculatePlanningPose>("CalculatePlanningPose");
   factory.registerNodeType<nbv_behaviors::ConcludePolicy>("ConcludePolicy");
 

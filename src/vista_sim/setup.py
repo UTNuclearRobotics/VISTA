@@ -26,6 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dubins_pose_to_pose_action_server = vista_sim.dubins_pose_to_pose_action_server:main',
+            'path_lengths_server = vista_sim.path_lengths_server:main',
         ],
     },
 )

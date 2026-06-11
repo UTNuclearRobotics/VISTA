@@ -1,0 +1,9 @@
+# Request
+geometry_msgs/PoseArray nbv_poses    # Candidate NBV poses relative to their local frame (e.g., 'roi_frame')
+string robot_frame_id                # Usually 'base_link'
+string view_frame_id                 # Frame nbv_poses are expressed in, e.g. 'sonar_optical'
+float64 turn_radius                  # minimal turn radius needed for the horizontal path
+float64 max_pitch_deg                # vehicle pitch for vertical climb
+---
+# Response
+float64[] path_lengths               # Parallel array of calculated 3D path lengths

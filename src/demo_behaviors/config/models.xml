@@ -25,7 +25,8 @@
         </Action>
         <Action ID="CheckScoreSaturation">
             <input_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
-            <input_port name="threshold" type="double"/>
+            <input_port name="patience" type="int" default="2">Consecutive NBV cycles the ratio must stay below epsilon before saturating</input_port>
+            <input_port name="threshold" type="double">Relative convergence ratio epsilon: saturate when the best remaining view's score falls below this fraction of the peak score seen for the target</input_port>
         </Action>
         <Control ID="Cleanup"/>
         <Action ID="ClearCostmap">
@@ -114,6 +115,15 @@
         <Action ID="GetBestView">
             <output_port name="new_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
             <output_port name="best_view_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <output_port name="new_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <input_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+        </Action>
+        <Action ID="GetBestViewWithCost">
+            <output_port name="new_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <output_port name="best_view_pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;"/>
+            <input_port name="alpha" type="double" default="0.500000">Cost weight in [0,1]: utility = (1-alpha)*IG_norm - alpha*cost_norm. alpha=0 -&gt; pure info-gain (greedy), alpha=1 -&gt; pure cost.</input_port>
+            <input_port name="path_costs" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
             <input_port name="fractional_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
             <output_port name="new_scores" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
             <input_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
@@ -222,6 +232,14 @@
         <Action ID="NavigateToPose">
             <input_port name="robot_nav_namespace" type="std::string"/>
             <input_port name="target_pose" type="std::shared_ptr&lt;geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt; &gt;"/>
+        </Action>
+        <Action ID="PathLengthClient">
+            <output_port name="path_costs" type="std::vector&lt;double, std::allocator&lt;double&gt; &gt;"/>
+            <input_port name="max_pitch_deg" type="double"/>
+            <input_port name="view_frame_id" type="std::string"/>
+            <input_port name="robot_frame_id" type="std::string"/>
+            <input_port name="turn_radius" type="double"/>
+            <input_port name="view_poses" type="geometry_msgs::msg::PoseArray_&lt;std::allocator&lt;void&gt; &gt;"/>
         </Action>
         <Action ID="PauseUntil">
             <input_port name="value" type="bool">A value to evaluate as the resume condition</input_port>

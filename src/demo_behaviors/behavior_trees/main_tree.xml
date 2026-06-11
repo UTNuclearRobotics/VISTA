@@ -16,6 +16,9 @@
             /next_best_view_server/set_views
             /next_best_view_server/conclude_policy"/>
 
+        <!-- Dubins path-length cost server (cost-informed NBV selection) -->
+        <CheckForServers timeout="10" servers="/compute_path_lengths"/>
+
         <!-- Bayesian Search -->
         <CheckForServers timeout="10" servers="/bayesian_search_server/get_next_search_pose"/>
 

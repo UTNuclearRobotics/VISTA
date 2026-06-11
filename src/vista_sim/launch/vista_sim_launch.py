@@ -120,6 +120,18 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', log_level],
         ),
 
+        # Dubins path-length cost server — answers /compute_path_lengths for
+        # cost-informed NBV selection. Stateless: turn radius and max pitch come
+        # in per-request; it just needs the TF tree (ned, roi_frame, base_link,
+        # sonar_optical) published above.
+        Node(
+            package='vista_sim',
+            executable='path_lengths_server',
+            name='path_length_service',
+            output='screen',
+            arguments=['--ros-args', '--log-level', log_level],
+        ),
+
         # Sensor model: sonar → sonar_optical frame convention
         Node(
             package='tf2_ros',

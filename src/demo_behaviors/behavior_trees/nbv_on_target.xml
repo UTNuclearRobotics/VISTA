@@ -18,9 +18,9 @@
                 clearance_height="5"
                 helix_height="10"
                 min_radius="5.0"
-                radius_multiplier="3"
-                num_shells="3"
-                delta_theta="30"
+                radius_multiplier="2"
+                num_shells="2"
+                delta_theta="45"
                 psi_max_deg="15"
                 mount_angle_deg="20"
                 view_poses="{poses}"
@@ -30,15 +30,26 @@
             <SetViews sensor_name="fls" view_poses="{poses}" fractional_scores="{scores}"/>
 
             <!-- NBV loop: repeat while not saturated -->
-            <RepeatWhile>
+            <RepeatWhile reactive = "false">
                 <Inverter>
-                    <CheckScoreSaturation threshold="0.0001" fractional_scores="{scores}"/>
+                    <CheckScoreSaturation threshold="0.05" patience="2" fractional_scores="{scores}"/>
                 </Inverter>
                 <Sequence>
-                    <!-- Select highest-scored viewpoint, remove from candidate list -->
-                    <GetBestView
+                    <!-- Cost each remaining candidate via true Dubins path length (NED, server-side) -->
+                    <PathLengthClient
+                        view_poses="{poses}"
+                        robot_frame_id="base_link"
+                        view_frame_id="sonar_optical"
+                        turn_radius="5.0"
+                        max_pitch_deg="15"
+                        path_costs="{path_costs}"
+                    />
+                    <!-- Select best viewpoint by info-gain vs path-cost utility, remove from candidate list -->
+                    <GetBestViewWithCost
                         view_poses="{poses}"
                         fractional_scores="{scores}"
+                        path_costs="{path_costs}"
+                        alpha="0.5"
                         best_view_pose="{best_view_pose}"
                         new_poses="{poses}"
                         new_scores="{scores}"
