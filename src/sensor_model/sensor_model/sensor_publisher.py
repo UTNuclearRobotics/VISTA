@@ -14,6 +14,7 @@ from sensor_model.ray_casting_core import RayCastingCore   # full package path
 from sensor_model.compute_intrinsics import FLS_CONFIG
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+from uuv_interfaces.msg import FaceHits
 
 
 def transform_to_extrinsic(t):
@@ -70,8 +71,10 @@ class DepthPublisher(Node):
                                          10)
 
         self.pub_info = self.create_publisher(CameraInfo, '/sonar/depth/camera_info', 10)
-        
+
         self.detect_pub = self.create_publisher(Path, '/detected_boxes', 10)
+
+        self.face_hits_pub = self.create_publisher(FaceHits, '/face_hits', 10)
 
         # Publish at 10 Hz
         self.timer = self.create_timer(0.1, self.timer_cb)
@@ -95,11 +98,18 @@ class DepthPublisher(Node):
         extrinsic = transform_to_extrinsic(transform)
         self.fls_sensor.set_rays(extrinsic)
 
-        # Get depth array (H, W)
-        depth, detected_ids = self.fls_sensor.ping()
-        
-       
-        
+        # Get depth array (H, W), detected box IDs, and per-frame face hits for CIR
+        depth, detected_ids, face_pairs = self.fls_sensor.ping()
+
+        # Publish CIR face hits: (geometry_id, primitive_id) pairs this frame
+        if len(face_pairs) > 0:
+            face_hits_msg = FaceHits()
+            face_hits_msg.header.stamp = stamp
+            face_hits_msg.header.frame_id = 'map'
+            face_hits_msg.geometry_ids = face_pairs[:, 0].astype(np.int32).tolist()
+            face_hits_msg.primitive_ids = face_pairs[:, 1].astype(np.int32).tolist()
+            self.face_hits_pub.publish(face_hits_msg)
+
         #semantically used for our detected objects
         detect_msg = Path()
         detect_msg.header.stamp = stamp

@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rosidl_default_runtime REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Add action files
 set(action_files
@@ -23,11 +24,17 @@ set(srv_files
   "srv/DubinsLengths.srv"
 )
 
+# Add message files
+set(msg_files
+  "msg/FaceHits.msg"
+)
+
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${action_files}
   ${srv_files}
-  DEPENDENCIES geometry_msgs
+  ${msg_files}
+  DEPENDENCIES geometry_msgs std_msgs
 )
 
 if(BUILD_TESTING)

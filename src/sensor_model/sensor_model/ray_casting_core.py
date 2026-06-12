@@ -134,20 +134,22 @@ class RayCastingCore:
         # retrieve z component of points as depth
         depth = local_points[:, 2].reshape(self.height_px, self.width_px)
         
-        #process geometry_ids
-        
-        #remove non hit IDs and any IDs out of bounds (this is already a flattened array)
-        hit_ids = hit_ids[dists > 0.0]
-        hit_ids = hit_ids[hit_ids != 0xFFFFFFFF]
-        
-        #only provide IDs present in the hashmap keys
-        
-        mask = np.isin(hit_ids, list(self.box_geometryID_hashmap.keys()))
-        
-        hit_ids = hit_ids[mask]
-        
-        
-        return depth, np.unique(hit_ids)
+        # --- process hits: extract geometry + primitive (triangle) ids ---
+        prim_ids = hits['primitive_ids'].numpy().flatten()   # triangle index per ray
+
+        # valid-hit mask (in range, not a miss) — apply to BOTH arrays in lockstep
+        valid = (dists > 0.0) & (hit_ids != 0xFFFFFFFF)
+        geom_valid = hit_ids[valid]
+        prim_valid = prim_ids[valid]
+
+        # CIR: per-frame UNIQUE (geometry_id, primitive_id) pairs — ALL geoms incl. seabed.
+        face_pairs = np.unique(np.stack([geom_valid, prim_valid], axis=1), axis=0)  # (M, 2)
+
+        # detection (existing behavior): box geometry IDs only
+        box_mask = np.isin(geom_valid, list(self.box_geometryID_hashmap.keys()))
+        box_ids = np.unique(geom_valid[box_mask])
+
+        return depth, box_ids, face_pairs
 
 
 

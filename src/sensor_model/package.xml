@@ -13,6 +13,7 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>uuv_interfaces</depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-open3d</exec_depend>
 
